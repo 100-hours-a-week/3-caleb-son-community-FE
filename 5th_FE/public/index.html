@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>게시글 목록</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+  <div class="wrap">
+    
+    <div class="container">
+        <div id="contents" class="contents"></div>
+    </div>
+    
+    <!-- 플로팅 새 글 작성 버튼 -->
+    <button id="floatingWriteBtn" class="floating-write-btn" onclick="location.href='/post_new.html'">
+      <span class="floating-btn-icon">✏️</span>
+      <span class="floating-btn-text">새 글 작성</span>
+    </button>
+  </div>
+  <script src="/js/auth.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/aside.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    // 헤더 렌더링
+    renderHeader();
+    
+    // 스크롤바 자동 숨김/표시 기능
+    const contents = document.getElementById('contents');
+    let scrollTimer;
+    
+    contents.addEventListener('scroll', () => {
+      contents.classList.add('scrolling');
+      
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        contents.classList.remove('scrolling');
+      }, 1000);
+    });
+    
+    // 로그인 상태 변경 시 헤더 업데이트
+    function updateHeader() {
+      const existingHeader = document.querySelector('.header');
+      if (existingHeader) {
+        existingHeader.remove();
+      }
+      renderHeader();
+    }
+    
+    // 로그인 상태 변경 감지 (localStorage 변경 감지)
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'auth.user') {
+        updateHeader();
+      }
+    });
+    
+    async function load(){
+      const res = await apiFetch('/posts');
+      const list = res?.data?.posts || [];
+      const post_list = document.getElementById('contents');
+      post_list.innerHTML='';
+      list.forEach(p => {
+        const cardPost = renderCardPost(p);
+        post_list.appendChild(cardPost);
+      });
+    }
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# OS / 편집기
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# 빌드/캐시/커버리지
+dist/
+build/
+.cache/
+coverage/
+
+# 프레임워크별 산출물(혹시 사용할 경우 대비)
+.next/
+.svelte-kit/
+.vite/
+
+# 환경변수 파일
+.env
+.env.*
+!.env.example
+
+# 로컬 업로드/정적 저장소(테스트용)
+uploads/
+public/uploads/

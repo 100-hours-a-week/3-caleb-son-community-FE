@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>회원가입</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <div class="signup-card">
+      <h2 class="signup-form-title">회원가입</h2>
+      
+      <div class="profile-upload">
+        <div class="profile-placeholder" id="profilePlaceholder">
+          <div class="plus-icon">+</div>
+        </div>
+        <input type="file" id="profileImageInput" accept="image/*" style="display: none;">
+        <div class="profile-image-preview" id="profileImagePreview" style="display: none;">
+          <img id="previewImg" src="" alt="프로필 미리보기">
+          <button type="button" class="remove-image-btn" id="removeImageBtn">×</button>
+        </div>
+      </div>
+      
+      <form class="signup-form">
+        <div class="form-group">
+          <label for="email" class="form-label">이메일</label>
+          <input type="email" id="email" class="form-input" placeholder="이메일을 입력하세요" required>
+          <div class="helper-text">*helper text</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="password" class="form-label">비밀번호</label>
+          <input type="password" id="password" class="form-input" placeholder="비밀번호를 입력하세요" required>
+          <div class="helper-text">*helper text</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">비밀번호 확인</label>
+          <input type="password" id="confirmPassword" class="form-input" placeholder="비밀번호를 한번 더 입력하세요" required>
+          <div class="helper-text">*helper text</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="nickname" class="form-label">닉네임</label>
+          <input type="text" id="nickname" class="form-input" placeholder="닉네임을 입력하세요" required>
+          <div class="helper-text">*helper text</div>
+        </div>
+        
+        <button type="submit" class="btn-submit">가입하기</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/aside.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    renderHeader();
+    
+    let selectedProfileImage = null;
+    let profileImageUrl = null;
+    
+    // 프로필 이미지 선택 이벤트
+    document.getElementById('profilePlaceholder').addEventListener('click', () => {
+      document.getElementById('profileImageInput').click();
+    });
+    
+    document.getElementById('profileImageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        selectedProfileImage = file;
+        showImagePreview(file);
+      }
+    });
+    
+    // 이미지 미리보기 표시
+    function showImagePreview(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('previewImg').src = e.target.result;
+        document.getElementById('profilePlaceholder').style.display = 'none';
+        document.getElementById('profileImagePreview').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // 이미지 제거
+    document.getElementById('removeImageBtn').addEventListener('click', () => {
+      selectedProfileImage = null;
+      profileImageUrl = null;
+      document.getElementById('profileImageInput').value = '';
+      document.getElementById('profilePlaceholder').style.display = 'block';
+      document.getElementById('profileImagePreview').style.display = 'none';
+    });
+    
+    // 프로필 이미지 업로드 함수
+    async function uploadProfileImage(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await apiFetch('/users/upload-profile-image', {
+          method: 'POST',
+          body: formData
+        });
+        return res.data.imageUrl;
+      } catch (error) {
+        throw new Error('프로필 이미지 업로드 실패: ' + error.message);
+      }
+    }
+    
+    document.querySelector('.signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const payload = {
+        nickname: document.getElementById('nickname').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value.trim(),
+        confirmPassword: document.getElementById('confirmPassword').value.trim(),
+        profile_image_url: null
+      };
+      
+      if(!payload.nickname || !payload.email || !payload.password || !payload.confirmPassword) {
+        alert('필수 항목을 입력하세요.');
+        return;
+      }
+      
+      if(payload.password !== payload.confirmPassword) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+      
+      try {
+        // 프로필 이미지가 선택된 경우 S3에 업로드
+        if (selectedProfileImage) {
+          profileImageUrl = await uploadProfileImage(selectedProfileImage);
+          payload.profile_image_url = profileImageUrl;
+        }
+        
+        const res = await apiFetch('/users/signup', { 
+          method:'POST', 
+          body: JSON.stringify({
+            nickname: payload.nickname,
+            email: payload.email,
+            password: payload.password,
+            profile_image_url: payload.profile_image_url
+          })
+        });
+        
+        if(res?.data?.userId) {
+          // 세션 초기화 (모든 로컬 스토리지 클리어)
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          alert('가입 성공! 로그인 페이지로 이동합니다.'); 
+          location.href = '/login.html';
+        } else { 
+          alert('가입 성공: ID 미수신'); 
+          location.href = '/login.html';
+        }
+      } catch(e) { 
+        alert('가입 실패: ' + (e.message||'unknown')); 
+      }
+    });
+  </script>
+</body>
+</html>

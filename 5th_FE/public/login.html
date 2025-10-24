@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>로그인</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .error-message {
+      color: #e74c3c;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 뒤로가기 버튼 -->
+    <button class="back-button" onclick="history.back()">←</button>
+    <div class="login-container">
+      <div class="login-header">
+        <img class="logoimg" src="/assets/images/logo.png" alt="">
+        <h1 class="login-title">아무 말 대잔치</h1>
+      </div>
+  
+      <div class="login-card">
+        <form class="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">이메일</label>
+            <input type="email" id="email" class="form-input" placeholder="이메일을 입력하세요" required>
+            <div id="email-error" class="error-message"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label">비밀번호</label>
+            <input type="password" id="password" class="form-input" placeholder="비밀번호를 입력하세요" required>
+            <div id="password-error" class="error-message"></div>
+          </div>
+          
+          <div class="button-group">
+            <button type="submit" class="btn-login">로그인</button>
+            <a href="/signup" class="btn-signup">회원가입</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/aside.js"></script>
+  <script>
+    // 유효성 검사 함수
+    function validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email) && email.length > 0;
+    }
+
+    function validatePassword(password) {
+      return password && password.length >= 6;
+    }
+
+    function showError(elementId, message) {
+      const errorElement = document.getElementById(elementId);
+      errorElement.textContent = message;
+      errorElement.style.display = message ? 'block' : 'none';
+    }
+
+    function validateForm() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const submitBtn = document.querySelector('.btn-login');
+      
+      const isEmailValid = validateEmail(email);
+      const isPasswordValid = validatePassword(password);
+      
+      // 폼이 유효할 때만 로그인 버튼 활성화
+      submitBtn.disabled = !(isEmailValid && isPasswordValid);
+      
+      // 버튼 스타일 업데이트
+      if (submitBtn.disabled) {
+        submitBtn.style.opacity = '0.6';
+        submitBtn.style.cursor = 'not-allowed';
+      } else {
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+      }
+    }
+
+    // DOM 로드 후 이벤트 리스너 등록
+    document.addEventListener('DOMContentLoaded', function() {
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const submitBtn = document.querySelector('.btn-login');
+      
+      // 초기 상태: 버튼 비활성화
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.6';
+      submitBtn.style.cursor = 'not-allowed';
+      
+      // 실시간 유효성 검사 (오류 메시지 없이 버튼 활성화만)
+      emailInput.addEventListener('input', validateForm);
+      passwordInput.addEventListener('input', validateForm);
+    });
+
+    document.querySelector('.login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const submitBtn = document.querySelector('.btn-login');
+      
+      // 기존 에러 메시지 숨기기
+      showError('email-error', '');
+      showError('password-error', '');
+      
+      // 추가 유효성 검사 (이미 버튼이 비활성화되어 있지만 이중 체크)
+      if(!validateEmail(email)) {
+        showError('email-error', '올바른 이메일 형식을 입력해주세요.');
+        return;
+      }
+      
+      if(!validatePassword(password)) {
+        showError('password-error', '비밀번호는 6자 이상 입력해주세요.');
+        return;
+      }
+      
+      // 로딩 상태 표시
+      submitBtn.disabled = true;
+      submitBtn.textContent = '로그인 중...';
+      
+      try {
+        const result = await Auth.login(email, password);
+        
+        if (result.success) {
+          location.href = '/';
+        } else {
+          // 로그인 실패 시 에러 메시지 표시
+          showError('password-error', '아이디 또는 비밀번호가 잘못 되었습니다. 아이디와 비밀번호를 정확히 입력해 주세요.');
+        }
+      } catch (error) {
+        console.error('로그인 오류:', error);
+        showError('password-error', '아이디 또는 비밀번호가 잘못 되었습니다. 아이디와 비밀번호를 정확히 입력해 주세요.');
+      } finally {
+        // 로딩 상태 해제
+        submitBtn.disabled = false;
+        submitBtn.textContent = '로그인';
+        // 유효성 검사 다시 실행
+        validateForm();
+      }
+    });
+  </script>
+</body>
+</html>

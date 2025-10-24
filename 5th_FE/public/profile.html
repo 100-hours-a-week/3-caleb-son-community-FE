@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>회원정보 수정</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 뒤로가기 버튼 -->
+    <button class="back-button" onclick="history.back()">←</button>
+    
+    <!-- 메인 컨텐츠 -->
+    <div class="contents">
+      <div class="profile-edit-container">
+        <h1 class="profile-edit-title">회원정보 수정</h1>
+        
+        <div class="profile-image-section">
+          <img id="profileImage" src="/assets/images/account_circle.png" alt="프로필 이미지" class="profile-large" onclick="document.getElementById('imageInput').click()"/>
+          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)"/>
+        </div>
+        
+        <div class="profile-form-card">
+          <div class="form-group">
+            <label class="form-label">이메일</label>
+            <div class="email-display" id="emailDisplay">caleb123@gmail.com</div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">닉네임</label>
+            <input type="text" id="nicknameInput" class="form-input" placeholder="현재 닉네임"/>
+          </div>
+          
+          <button id="btnUpdate" class="update-button">수정하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/js/auth.js"></script>
+  <script src="/js/aside.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    renderHeader();
+    if(!requireLogin('/login')){}
+    
+    // 현재 사용자 정보 로드
+    const currentUser = Auth.profile();
+    const userId = Auth.userId();
+    
+    // 이메일 표시
+    document.getElementById('emailDisplay').textContent = currentUser?.email || 'caleb123@gmail.com';
+    
+    // 닉네임 입력 필드에 현재 닉네임 설정
+    document.getElementById('nicknameInput').value = currentUser?.nickname || '';
+    document.getElementById('nicknameInput').placeholder = currentUser?.nickname || '현재 닉네임';
+    
+    // 프로필 이미지 설정
+    if(currentUser?.imageUrl) {
+      document.getElementById('profileImage').src = currentUser.imageUrl;
+      document.querySelector('.profile_circle').src = currentUser.imageUrl;
+    }
+    
+    // 이미지 업로드 처리 함수
+    window.handleImageUpload = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // 파일 크기 검사 (5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('파일 크기는 5MB 이하여야 합니다.');
+        return;
+      }
+      
+      // 이미지 파일 타입 검사
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+      }
+      
+      try {
+        // FormData 생성
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // 프로필 이미지 업로드 API 호출
+        const response = await apiFetch('/users/upload-profile-image', {
+          method: 'POST',
+          headers: {
+            'X-USER-ID': String(userId)
+          },
+          body: formData
+        });
+        
+        if (response && response.data && response.data.imageUrl) {
+          // 업로드 성공 시 이미지 URL 업데이트
+          const imageUrl = response.data.imageUrl;
+          document.getElementById('profileImage').src = imageUrl;
+          document.querySelector('.profile_circle').src = imageUrl;
+          
+          // 로컬 저장소에 이미지 URL 저장
+          Auth.setProfile({ 
+            ...currentUser, 
+            imageUrl: imageUrl 
+          });
+          
+          // 백엔드에도 프로필 이미지 업데이트
+          try {
+            await apiFetch('/users/profile', {
+              method: 'PUT',
+              body: JSON.stringify({ 
+                nickname: currentUser?.nickname || '',
+                profile_image_url: imageUrl
+              })
+            });
+          } catch (updateError) {
+            console.warn('백엔드 프로필 업데이트 실패:', updateError);
+            // 업로드는 성공했으므로 계속 진행
+          }
+          
+          alert('프로필 이미지가 업데이트되었습니다.');
+        } else {
+          throw new Error('이미지 업로드에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('이미지 업로드 실패:', error);
+        alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+      }
+    };
+    
+    // 수정하기 버튼 클릭 이벤트
+    document.getElementById('btnUpdate').addEventListener('click', async () => {
+      const nickname = document.getElementById('nicknameInput').value.trim();
+      
+      if(!nickname) {
+        alert('닉네임을 입력해주세요.');
+        return;
+      }
+      
+      try {
+        // 백엔드 API 호출로 사용자 정보 업데이트
+        const response = await apiFetch('/users/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            nickname: nickname,
+            profile_image_url: currentUser?.imageUrl || null
+          })
+        });
+        
+        // 로컬 저장소 업데이트
+        Auth.setProfile({ 
+          ...currentUser, 
+          nickname: nickname 
+        });
+        
+        alert('회원정보가 수정되었습니다.');
+        location.reload();
+      } catch (error) {
+        console.error('회원정보 수정 실패:', error);
+        alert('회원정보 수정에 실패했습니다. 다시 시도해주세요.');
+      }
+    });
+  </script>
+</body>
+</html>

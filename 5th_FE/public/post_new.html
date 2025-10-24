@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>게시글 작성</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 뒤로가기 버튼 -->
+    <button class="back-button" onclick="history.back()">←</button>
+    
+    <!-- 메인 컨텐츠 -->
+    <div class="post-new-container">
+      <h2 class="page-title">게시글 작성</h2>
+      
+      <div class="post-form-card">
+        <!-- 제목 입력 -->
+        <div class="form-group">
+          <label class="form-label required">제목</label>
+          <input 
+            type="text" 
+            id="title" 
+            class="form-input" 
+            placeholder="제목을 입력해주세요. (최대 26글자)"
+            maxlength="26"
+          />
+        </div>
+        
+        <!-- 내용 입력 -->
+        <div class="form-group">
+          <label class="form-label required">내용</label>
+          <textarea 
+            id="content" 
+            class="form-textarea" 
+            placeholder="내용을 입력해주세요."
+            rows="8"
+          ></textarea>
+        </div>
+        
+        <!-- 이미지 업로드 -->
+        <div class="form-group">
+          <div class="helper-text">* helper text</div>
+          <label class="form-label">이미지</label>
+          <div class="image-upload-area">
+            <input type="file" id="imageInput" accept="image/*" multiple style="display: none;" />
+            <button type="button" id="selectFileBtn" class="file-select-btn">파일 선택</button>
+            <span class="file-instruction">파일을 선택해주세요.</span>
+          </div>
+          <div id="imagePreview" class="image-preview"></div>
+        </div>
+        
+        <!-- 완료 버튼 -->
+        <button id="btnSave" class="submit-btn disabled">완료</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/aside.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    renderHeader();
+    if(!requireLogin('/login')){}
+    
+    // 프로필 이미지 설정
+    const currentUser = Auth.profile();
+    if(currentUser?.imageUrl) {
+      document.querySelector('.profile_circle').src = currentUser.imageUrl;
+    }
+    
+    const titleInput = document.getElementById('title');
+    const contentInput = document.getElementById('content');
+    const submitBtn = document.getElementById('btnSave');
+    const imageInput = document.getElementById('imageInput');
+    const selectFileBtn = document.getElementById('selectFileBtn');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    let selectedImages = [];
+    
+    // 파일 선택 버튼 클릭
+    selectFileBtn.addEventListener('click', () => {
+      imageInput.click();
+    });
+    
+    // 이미지 파일 선택
+    imageInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      
+      // 이미지 파일만 필터링
+      const imageFiles = files.filter(file => {
+        return file.type.startsWith('image/');
+      });
+      
+      if (imageFiles.length !== files.length) {
+        alert('이미지 파일만 업로드 가능합니다.');
+      }
+      
+      selectedImages = imageFiles;
+      displayImagePreview(imageFiles);
+    });
+    
+    // 이미지 미리보기 표시
+    function displayImagePreview(files) {
+      imagePreview.innerHTML = '';
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.className = 'preview-image';
+          img.alt = `미리보기 ${index + 1}`;
+          imagePreview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // 폼 유효성 검사 및 버튼 상태 업데이트
+    function updateSubmitButton() {
+      const hasTitle = titleInput.value.trim().length > 0;
+      const hasContent = contentInput.value.trim().length > 0;
+      const isValid = hasTitle && hasContent;
+      
+      if (isValid) {
+        submitBtn.classList.remove('disabled');
+        submitBtn.classList.add('enabled');
+      } else {
+        submitBtn.classList.remove('enabled');
+        submitBtn.classList.add('disabled');
+      }
+    }
+    
+    // 입력 이벤트 리스너
+    titleInput.addEventListener('input', updateSubmitButton);
+    contentInput.addEventListener('input', updateSubmitButton);
+    
+    // 제출 버튼 클릭
+    submitBtn.addEventListener('click', async () => {
+      const title = titleInput.value.trim();
+      const content = contentInput.value.trim();
+      
+      if (!title || !content) {
+        alert('*제목, 내용을 모두 작성해주세요');
+        return;
+      }
+      
+      // 버튼 비활성화 및 로딩 상태
+      submitBtn.disabled = true;
+      submitBtn.textContent = '등록 중...';
+      
+      try {
+        // 이미지 파일을 먼저 업로드하고 URL을 받아옴
+        const imageUrls = [];
+        
+        if (selectedImages.length > 0) {
+          for (const file of selectedImages) {
+            // FormData로 이미지 파일 업로드
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const uploadResponse = await apiFetch('/posts/upload-image', {
+              method: 'POST',
+              headers: {
+                'X-USER-ID': Auth.userId()
+              },
+              body: formData
+            });
+            
+            if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
+              imageUrls.push(uploadResponse.data.imageUrl);
+            } else {
+              throw new Error('이미지 업로드에 실패했습니다.');
+            }
+          }
+        }
+        
+        // 이미지 URL들을 쉼표로 구분된 하나의 문자열로 변환
+        const imageUrlsString = imageUrls.join(',');
+        
+        // JSON 형태로 게시글 생성 요청
+        const response = await apiFetch('/posts', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: title,
+            content: content,
+            imageUrls: imageUrlsString
+          })
+        });
+        
+        const postId = response?.data?.postId;
+        
+        if (postId) {
+          location.href = `/post_detail.html?id=${postId}`;
+        } else {
+          location.href = '/';
+        }
+      } catch (e) {
+        alert('등록 실패: ' + (e.message || 'unknown'));
+      } finally {
+        // 버튼 상태 복원
+        submitBtn.disabled = false;
+        submitBtn.textContent = '완료';
+      }
+    });
+  </script>
+</body>
+</html>
