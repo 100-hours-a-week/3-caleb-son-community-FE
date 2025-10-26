@@ -69,12 +69,6 @@ function renderHeader() {
       if (confirm('정말 로그아웃 하시겠습니까?')) {
         Auth.clear();
         alert('로그아웃되었습니다.');
-        
-        // 로그아웃 시 헤더 업데이트
-        if (typeof updateHeader === 'function') {
-          updateHeader();
-        }
-        
         location.href = '/login';
       }
     } else {
