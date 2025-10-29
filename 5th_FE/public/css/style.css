@@ -389,6 +389,7 @@ label {
 .wrap {
   width: var(--container-width);
   min-width: var(--container-width);
+  height: 100vh;
   background-color: var(--color-bg-card);
   display: flex;
   flex-direction: column;

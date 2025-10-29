@@ -51,7 +51,7 @@
     
     // 로그인 상태 변경 감지 (localStorage 변경 감지)
     window.addEventListener('storage', function(e) {
-      if (e.key === 'auth.user') {
+      if (e.key === 'auth.user' || e.key === 'auth.accessToken') {
         updateHeader();
       }
     });

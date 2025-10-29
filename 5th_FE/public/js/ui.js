@@ -64,18 +64,20 @@ function renderHeader() {
   });
 
   // 로그아웃/로그인 처리 함수
-  window.handleLogout = function() {
+  window.handleLogout = async function() {
     if (isLoggedIn) {
       if (confirm('정말 로그아웃 하시겠습니까?')) {
-        Auth.clear();
-        alert('로그아웃되었습니다.');
-        
-        // 로그아웃 시 헤더 업데이트
-        if (typeof updateHeader === 'function') {
-          updateHeader();
+        try {
+          await Auth.logout();
+          alert('로그아웃되었습니다.');
+          location.href = '/login';
+        } catch (error) {
+          console.error('로그아웃 실패:', error);
+          // 서버 로그아웃 실패해도 클라이언트에서는 로그아웃 처리
+          Auth.clear();
+          alert('로그아웃되었습니다.');
+          location.href = '/login';
         }
-        
-        location.href = '/login';
       }
     } else {
       // 로그인되지 않은 상태에서 프로필 클릭 시 로그인 페이지로 이동
