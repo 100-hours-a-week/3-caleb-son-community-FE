@@ -31,15 +31,6 @@
     const contents = document.getElementById('contents');
     let scrollTimer;
     
-    contents.addEventListener('scroll', () => {
-      contents.classList.add('scrolling');
-      
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        contents.classList.remove('scrolling');
-      }, 1000);
-    });
-    
     // 로그인 상태 변경 시 헤더 업데이트
     function updateHeader() {
       const existingHeader = document.querySelector('.header');
@@ -56,17 +47,54 @@
       }
     });
     
-    async function load(){
-      const res = await apiFetch('/posts');
-      const list = res?.data?.posts || [];
-      const post_list = document.getElementById('contents');
-      post_list.innerHTML='';
-      list.forEach(p => {
-        const cardPost = renderCardPost(p);
-        post_list.appendChild(cardPost);
-      });
+    // 무한 스크롤 변수
+    let currentPage = 0;
+    const pageSize = 10;
+    let isLoading = false;
+    let hasMorePosts = true;
+    
+    async function loadMorePosts() {
+      if (isLoading || !hasMorePosts) return;
+      isLoading = true;
+      
+      try {
+        const res = await apiFetch(`/posts?page=${currentPage}&size=${pageSize}`);
+        const newPosts = res?.data?.posts || [];
+        
+        if (newPosts.length === 0) {
+          hasMorePosts = false;
+        } else {
+          const post_list = document.getElementById('contents');
+          newPosts.forEach(p => {
+            const cardPost = renderCardPost(p);
+            post_list.appendChild(cardPost);
+          });
+          currentPage++;
+        }
+      } catch (error) {
+        console.error('Error loading posts:', error);
+      } finally {
+        isLoading = false;
+      }
     }
-    load();
+    
+    // 무한 스크롤 감지
+    contents.addEventListener('scroll', () => {
+      contents.classList.add('scrolling');
+      
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        contents.classList.remove('scrolling');
+      }, 1000);
+      
+      // 스크롤이 끝에 닿았을 때 추가 로딩
+      if (contents.scrollHeight - contents.scrollTop - contents.clientHeight < 500) {
+        loadMorePosts();
+      }
+    });
+    
+    // 초기 로드
+    loadMorePosts();
   </script>
 </body>
 </html>
