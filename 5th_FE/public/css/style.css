@@ -389,6 +389,7 @@ label {
 .wrap {
   width: var(--container-width);
   min-width: var(--container-width);
+  height: 100vh;
   background-color: var(--color-bg-card);
   display: flex;
   flex-direction: column;
@@ -992,6 +993,11 @@ label {
   align-items: center;
   padding: 24px 12px;
   position: relative;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
   z-index: 1;
 }
 
