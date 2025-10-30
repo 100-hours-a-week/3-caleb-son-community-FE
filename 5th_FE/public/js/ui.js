@@ -66,19 +66,10 @@ function renderHeader() {
   // 로그아웃/로그인 처리 함수
   window.handleLogout = function() {
     if (isLoggedIn) {
-      if (confirm('정말 로그아웃 하시겠습니까?')) {
-        Auth.clear();
-        alert('로그아웃되었습니다.');
-        
-        // 로그아웃 시 헤더 업데이트
-        if (typeof updateHeader === 'function') {
-          updateHeader();
-        }
-        
-        location.href = '/login';
-      }
+      Auth.clear();
+      // 다이렉트로 홈으로 보내기
+      location.href = '/';
     } else {
-      // 로그인되지 않은 상태에서 프로필 클릭 시 로그인 페이지로 이동
       location.href = '/login';
     }
   };
