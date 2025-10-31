@@ -149,23 +149,25 @@
         document.getElementById('authorProfileImg').src = p.author?.profileImageUrl || '/assets/images/account_circle.png';
         
         // 마지막 업데이트 시간 포맷팅
-        const updatedAt = new Date(p.updatedAt || p.createdAt);
+        const updatedAt = new Date(p.publishedAt);
         const now = new Date();
-        const diffTime = now - updatedAt;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        // 같은 날짜인지 확인 (오늘인지 확인)
+        const isToday = updatedAt.getFullYear() === now.getFullYear() &&
+                        updatedAt.getMonth() === now.getMonth() &&
+                        updatedAt.getDate() === now.getDate();
         
         let dateText;
-        if (diffDays === 0) {
+        if (isToday) {
           dateText = '오늘';
-        } else if (diffDays === 1) {
-          dateText = '어제';
-        } else if (diffDays < 7) {
-          dateText = `${diffDays}일 전`;
         } else {
-          dateText = updatedAt.toLocaleDateString('ko-KR', {
+          // 오늘이 아니면 날짜와 시간을 함께 표기
+          dateText = updatedAt.toLocaleString('ko-KR', {
             year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
           });
         }
         

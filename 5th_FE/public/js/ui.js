@@ -106,7 +106,7 @@ function renderCardPost(post) {
             <div class="card-post-count">${post.viewCount || 0}</div>
           </div>
         </div>
-        <div class="card-post-created">${post.updatedAt ? new Date(post.updatedAt).toLocaleString() : ''}</div>
+        <div class="card-post-created">${post.publishedAt ? new Date(post.publishedAt).toLocaleString() : ''}</div>
       </div>
     </div>
     <div class="card-post-bottom">
