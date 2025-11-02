@@ -63,6 +63,12 @@
         
         if (newPosts.length === 0) {
           hasMorePosts = false;
+          // 마지막 게시글 메시지를 contents 안에 추가
+          const post_list = document.getElementById('contents');
+          const endMessageDiv = document.createElement('div');
+          endMessageDiv.className = 'end-message';
+          endMessageDiv.innerHTML = '<p>마지막 게시글입니다.</p>';
+          post_list.appendChild(endMessageDiv);
         } else {
           const post_list = document.getElementById('contents');
           newPosts.forEach(p => {
