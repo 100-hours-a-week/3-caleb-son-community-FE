@@ -48,8 +48,6 @@ function renderAsideMenu() {
         ${isLoggedIn ? `
           <a href="/" class="aside-action-btn primary" onclick="closeAsideMenu()">홈</a>
           <a href="/post_new" class="aside-action-btn primary" onclick="closeAsideMenu()">글쓰기</a>
-          <a href="/profile" class="aside-action-btn secondary" onclick="closeAsideMenu()">내 프로필</a>
-          <a href="/change-password" class="aside-action-btn secondary" onclick="closeAsideMenu()">비밀번호 변경</a>
           <a href="#" class="aside-action-btn tertiary" onclick="handleLogout(); closeAsideMenu();">로그아웃</a>
         ` : `
           <a href="/" class="aside-action-btn primary" onclick="closeAsideMenu()">홈</a>
