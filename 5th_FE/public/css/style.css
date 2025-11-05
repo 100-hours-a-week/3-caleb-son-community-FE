@@ -987,7 +987,6 @@ label {
 /* ==================== Post Detail Page ==================== */
 .post-detail-container {
   width: 100%;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1310,6 +1309,55 @@ label {
   color: #ffffff;
 }
 
+/* 댓글 인라인 수정 입력창 */
+.comment-edit-input {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px;
+  border: 1px solid #aca0eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 8px;
+  background-color: #f9f9f9;
+}
+
+.comment-edit-input:focus {
+  outline: none;
+  border-color: #9587e0;
+  background-color: #ffffff;
+}
+
+.btn-comment-save,
+.btn-comment-cancel {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.btn-comment-save {
+  background-color: #aca0eb;
+  color: #ffffff;
+}
+
+.btn-comment-save:hover {
+  background-color: #9587e0;
+}
+
+.btn-comment-cancel {
+  background-color: #e0e0e0;
+  color: #333333;
+}
+
+.btn-comment-cancel:hover {
+  background-color: #d0d0d0;
+}
+
 .btn-comment-delete:hover {
   background-color: #1a1a1a;
 }
@@ -1353,7 +1401,7 @@ label {
 .modal-content {
   background-color: #ffffff;
   border-radius: 12px;
-  padding: 30px;
+  padding: 28px;
   max-width: 400px;
   width: 90%;
   text-align: center;

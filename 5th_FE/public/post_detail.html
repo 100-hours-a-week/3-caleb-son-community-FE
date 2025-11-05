@@ -154,12 +154,6 @@
         const res = await apiFetch('/posts/' + postId + '?increaseView=true');
         const p = res.data;
         
-        console.log('=== Post Load Debug ===');
-        console.log('Post ID:', postId);
-        console.log('isLiked value:', p.isLiked);
-        console.log('isLiked type:', typeof p.isLiked);
-        console.log('Full post data:', p);
-        console.log('=== End Debug ===');
         
         // 제목
         document.getElementById('title').textContent = p.title;
@@ -259,6 +253,7 @@
         commentsData.forEach(comment => {
           const commentEl = document.createElement('div');
           commentEl.className = 'comment-item';
+          commentEl.dataset.commentId = comment.id;
           
           // 현재 사용자가 댓글 작성자인지 확인
           const currentUserId = Auth.userId();
@@ -267,11 +262,14 @@
           commentEl.innerHTML = `
             <div class="comment-content">
               <div class="comment-author">${comment.author?.nickname || 'Anonymous'}</div>
-              <div class="comment-text">${comment.content}</div>
+              <div class="comment-text" data-original="${comment.content.replace(/"/g, '&quot;')}">${comment.content}</div>
+              <textarea class="comment-edit-input" style="display: none;">${comment.content}</textarea>
               <div class="comment-date">${new Date(comment.publishedAt).toLocaleString('ko-KR')}</div>
             </div>
             <div class="comment-actions" style="display: ${isMyComment ? 'flex' : 'none'}">
               <button class="btn-comment-edit" data-comment-id="${comment.id}">수정</button>
+              <button class="btn-comment-save" data-comment-id="${comment.id}" style="display: none;">저장</button>
+              <button class="btn-comment-cancel" data-comment-id="${comment.id}" style="display: none;">취소</button>
               <button class="btn-comment-delete" data-comment-id="${comment.id}">삭제</button>
             </div>
           `;
@@ -327,22 +325,11 @@
       if (!content) return;
       
       try {
-        if (isEditingComment) {
-          // 댓글 수정
-          await apiFetch(`/posts/${postId}/comments/${editingCommentId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ content })
-          });
-          isEditingComment = false;
-          editingCommentId = null;
-          commentSubmitBtn.textContent = '등록';
-        } else {
-          // 댓글 등록
-          await apiFetch('/posts/' + postId + '/comments', {
-            method: 'POST',
-            body: JSON.stringify({ content })
-          });
-        }
+        // 댓글 등록
+        await apiFetch('/posts/' + postId + '/comments', {
+          method: 'POST',
+          body: JSON.stringify({ content })
+        });
         
         commentInput.value = '';
         commentSubmitBtn.disabled = true;
@@ -353,20 +340,77 @@
       }
     });
     
-    // 댓글 수정
+    // 댓글 수정 - 인라인 편집 모드로 전환
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('btn-comment-edit')) {
         const commentId = e.target.dataset.commentId;
         const commentItem = e.target.closest('.comment-item');
-        const commentText = commentItem.querySelector('.comment-text').textContent;
+        const commentTextEl = commentItem.querySelector('.comment-text');
+        const commentEditInput = commentItem.querySelector('.comment-edit-input');
+        const btnEdit = commentItem.querySelector('.btn-comment-edit');
+        const btnSave = commentItem.querySelector('.btn-comment-save');
+        const btnCancel = commentItem.querySelector('.btn-comment-cancel');
+        const btnDelete = commentItem.querySelector('.btn-comment-delete');
         
-        commentInput.value = commentText;
-        commentInput.focus();
-        commentSubmitBtn.textContent = '댓글 수정';
-        commentSubmitBtn.disabled = false;
+        // 텍스트 숨기고 입력창 표시
+        commentTextEl.style.display = 'none';
+        commentEditInput.style.display = 'block';
+        commentEditInput.focus();
         
-        isEditingComment = true;
-        editingCommentId = commentId;
+        // 버튼 전환
+        btnEdit.style.display = 'none';
+        btnSave.style.display = 'inline-block';
+        btnCancel.style.display = 'inline-block';
+        btnDelete.style.display = 'none';
+      }
+      
+      // 저장 버튼 클릭
+      if (e.target.classList.contains('btn-comment-save')) {
+        const commentId = e.target.dataset.commentId;
+        const commentItem = e.target.closest('.comment-item');
+        const commentEditInput = commentItem.querySelector('.comment-edit-input');
+        const newContent = commentEditInput.value.trim();
+        
+        if (!newContent) {
+          alert('댓글 내용을 입력해주세요.');
+          return;
+        }
+        
+        // 서버에 수정 요청
+        apiFetch(`/posts/${postId}/comments/${commentId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ content: newContent })
+        }).then(() => {
+          loadComments(true);
+          loadPost();
+        }).catch(err => {
+          alert('댓글 수정에 실패했습니다: ' + err.message);
+        });
+      }
+      
+      // 취소 버튼 클릭
+      if (e.target.classList.contains('btn-comment-cancel')) {
+        const commentItem = e.target.closest('.comment-item');
+        const commentTextEl = commentItem.querySelector('.comment-text');
+        const commentEditInput = commentItem.querySelector('.comment-edit-input');
+        const btnEdit = commentItem.querySelector('.btn-comment-edit');
+        const btnSave = commentItem.querySelector('.btn-comment-save');
+        const btnCancel = commentItem.querySelector('.btn-comment-cancel');
+        const btnDelete = commentItem.querySelector('.btn-comment-delete');
+        const originalContent = commentTextEl.dataset.original;
+        
+        // 원래 내용으로 복원
+        commentEditInput.value = originalContent;
+        
+        // 입력창 숨기고 텍스트 표시
+        commentEditInput.style.display = 'none';
+        commentTextEl.style.display = 'block';
+        
+        // 버튼 전환
+        btnEdit.style.display = 'inline-block';
+        btnSave.style.display = 'none';
+        btnCancel.style.display = 'none';
+        btnDelete.style.display = 'inline-block';
       }
     });
     

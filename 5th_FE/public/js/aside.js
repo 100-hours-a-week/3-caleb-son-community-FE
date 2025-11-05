@@ -47,7 +47,7 @@ function renderAsideMenu() {
       <div class="aside-actions">
         ${isLoggedIn ? `
           <a href="/" class="aside-action-btn primary" onclick="closeAsideMenu()">홈</a>
-          <a href="/post_new" class="aside-action-btn primary" onclick="closeAsideMenu()">글쓰기</a>
+          <a href="/post_new.html" class="aside-action-btn primary" onclick="closeAsideMenu()">글쓰기</a>
           <a href="#" class="aside-action-btn tertiary" onclick="handleLogout(); closeAsideMenu();">로그아웃</a>
         ` : `
           <a href="/" class="aside-action-btn primary" onclick="closeAsideMenu()">홈</a>
