@@ -135,11 +135,31 @@
       return num.toString();
     }
     
+    // 좋아요 아이콘 업데이트
+    function updateLikeIcon(isLiked) {
+      const likeBtn = document.getElementById('btnLike');
+      const likeImg = likeBtn.querySelector('img');
+      if (isLiked) {
+        likeImg.src = '/assets/images/like_on.png';
+        likeBtn.classList.add('liked');
+      } else {
+        likeImg.src = '/assets/images/like.png';
+        likeBtn.classList.remove('liked');
+      }
+    }
+    
     // 게시글 로드
     async function loadPost() {
       try {
         const res = await apiFetch('/posts/' + postId + '?increaseView=true');
         const p = res.data;
+        
+        console.log('=== Post Load Debug ===');
+        console.log('Post ID:', postId);
+        console.log('isLiked value:', p.isLiked);
+        console.log('isLiked type:', typeof p.isLiked);
+        console.log('Full post data:', p);
+        console.log('=== End Debug ===');
         
         // 제목
         document.getElementById('title').textContent = p.title;
@@ -190,12 +210,7 @@
         document.getElementById('likeCount').textContent = formatNumber(p.likeCount || 0);
         
         // 좋아요 버튼 상태 업데이트
-        const likeBtn = document.getElementById('btnLike');
-        if (p.isLiked) {
-          likeBtn.classList.add('liked');
-        } else {
-          likeBtn.classList.remove('liked');
-        }
+        updateLikeIcon(p.isLiked);
         
         // 이미지 표시
         const imagesContainer = document.getElementById('images');
@@ -284,22 +299,16 @@
     // 좋아요 토글
     document.getElementById('btnLike').addEventListener('click', async () => {
       try {
+        const res = await apiFetch('/posts/' + postId + '/like', { method: 'POST' });
+        const data = res?.data || {};
         const likeBtn = document.getElementById('btnLike');
-        const isLiked = likeBtn.classList.contains('liked');
-        
-        if (isLiked) {
-          await apiFetch('/posts/' + postId + '/like', { method: 'DELETE' });
-        } else {
-          await apiFetch('/posts/' + postId + '/like', { method: 'POST' });
-        }
-        
-        await loadPost();
+        const likeCountEl = document.getElementById('likeCount');
+
+        const likeCount = typeof data.like === 'number' ? data.like : 0;
+        likeCountEl.textContent = formatNumber(likeCount);
+
+        updateLikeIcon(data.isLiked);
       } catch (e) {
-        // 좋아요 중복 시에는 alert를 표시하지 않음
-        if (e.status === 409 || e.message.includes('이미 좋아요') || e.message.includes('duplicate')) {
-          console.log('이미 좋아요를 누른 게시글입니다.');
-          return;
-        }
         alert('좋아요 처리에 실패했습니다: ' + e.message);
       }
     });
