@@ -83,6 +83,35 @@
     const TARGET_SIZE = 1 * 1024 * 1024; // 1MB
     const MAX_IMAGE_COUNT = 10; // 최대 이미지 개수
     
+    const params = new URLSearchParams(location.search);
+    const postId = params.get('id');
+
+    let images = []; // Array to hold both existing and new images: {url or file, isNew}
+
+    if (postId) {
+      document.querySelector('.page-title').textContent = '게시글 수정';
+      loadPostData(postId);
+    }
+
+    async function loadPostData(id) {
+      try {
+        const res = await apiFetch(`/posts/${id}?increaseView=false`);
+        const p = res.data;
+
+        titleInput.value = p.title;
+        contentInput.value = p.content;
+
+        // Load existing images
+        images = p.images ? p.images.map(img => ({ url: img.imageUrl, isNew: false })) : [];
+
+        displayImagePreview(images);
+        updateSubmitButton();
+        checkForChanges();
+      } catch (e) {
+        alert('게시글 불러오기에 실패했습니다: ' + e.message);
+      }
+    }
+
     // Toast 메시지 표시 함수
     function showToast(message, duration = 3000) {
       const toast = document.createElement('div');
@@ -178,7 +207,7 @@
       if (imageFiles.length === 0) return;
       
       // 최대 이미지 개수 체크
-      if (imageFiles.length > MAX_IMAGE_COUNT) {
+      if (imageFiles.length + images.length > MAX_IMAGE_COUNT) {
         showToast(`최대 ${MAX_IMAGE_COUNT}개의 이미지만 첨부할 수 있습니다.`);
         imageInput.value = ''; // 파일 선택 초기화
         return;
@@ -203,40 +232,54 @@
         }
         
         // 총 용량 체크
-        const totalSize = processedImages.reduce((sum, file) => sum + file.size, 0);
+        const totalSize = processedImages.reduce((sum, file) => sum + file.size, 0) +
+                          images.reduce((sum, img) => sum + (img.isNew ? img.file.size : 0), 0);
         if (totalSize > MAX_TOTAL_SIZE) {
           showToast(`이미지 총 용량이 5MB를 초과합니다. (현재: ${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
           imagePreview.innerHTML = '';
-          selectedImages = [];
           imageInput.value = ''; // 파일 선택 초기화
           return;
         }
         
-        selectedImages = processedImages;
-        displayImagePreview(processedImages);
+        // Add new images to the array
+        processedImages.forEach(file => {
+          images.push({ file, isNew: true });
+        });
+
+        displayImagePreview(images);
         checkForChanges(); // 이미지 선택 시에도 변경 사항 체크
       } catch (error) {
         console.error('이미지 처리 오류:', error);
         showToast('이미지 처리 중 오류가 발생했습니다.');
         imagePreview.innerHTML = '';
-        selectedImages = [];
         imageInput.value = ''; // 파일 선택 초기화
       }
     });
     
     // 이미지 미리보기 표시
-    function displayImagePreview(files) {
+    function displayImagePreview(imgList) {
       imagePreview.innerHTML = '';
-      files.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.className = 'preview-image';
-          img.alt = `미리보기 ${index + 1}`;
-          imagePreview.appendChild(img);
+      imgList.forEach((img, index) => {
+        const container = document.createElement('div');
+        container.className = 'preview-container';
+
+        const imgEl = document.createElement('img');
+        imgEl.src = img.isNew ? URL.createObjectURL(img.file) : img.url;
+        imgEl.className = 'preview-image';
+        imgEl.alt = `미리보기 ${index + 1}`;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-image-btn';
+        deleteBtn.textContent = 'x';
+        deleteBtn.onclick = () => {
+          images.splice(index, 1);
+          displayImagePreview(images);
+          checkForChanges();
         };
-        reader.readAsDataURL(file);
+
+        container.appendChild(imgEl);
+        container.appendChild(deleteBtn);
+        imagePreview.appendChild(container);
       });
     }
     
@@ -267,7 +310,7 @@
     function checkForChanges() {
       const hasTitle = titleInput.value.trim().length > 0;
       const hasContent = contentInput.value.trim().length > 0;
-      const hasImages = selectedImages.length > 0;
+      const hasImages = images.length > 0;
       
       hasUnsavedChanges = hasTitle || hasContent || hasImages;
     }
@@ -323,15 +366,17 @@
       submitBtn.textContent = '등록 중...';
       
       try {
-        // 이미지 파일을 먼저 업로드하고 URL을 받아옴
-        const imageUrls = [];
-        
-        if (selectedImages.length > 0) {
-          for (const file of selectedImages) {
-            // FormData로 이미지 파일 업로드
+        let imageUrlsString = '';
+
+        if (postId) {
+          // For edit mode
+          const newImageUrls = [];
+
+          // Upload new images
+          for (const img of images.filter(i => i.isNew)) {
             const formData = new FormData();
-            formData.append('file', file);
-            
+            formData.append('file', img.file);
+
             const uploadResponse = await apiFetch('/posts/upload-image', {
               method: 'POST',
               headers: {
@@ -339,37 +384,79 @@
               },
               body: formData
             });
-            
+
             if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
-              imageUrls.push(uploadResponse.data.imageUrl);
+              newImageUrls.push(uploadResponse.data.imageUrl);
             } else {
               throw new Error('이미지 업로드에 실패했습니다.');
             }
           }
-        }
-        
-        // 이미지 URL들을 쉼표로 구분된 하나의 문자열로 변환
-        const imageUrlsString = imageUrls.join(',');
-        
-        // JSON 형태로 게시글 생성 요청
-        const response = await apiFetch('/posts', {
-          method: 'POST',
-          body: JSON.stringify({
-            title: title,
-            content: content,
-            imageUrls: imageUrlsString
-          })
-        });
-        
-        const postId = response?.data?.postId;
-        
-        if (postId) {
-          location.href = `/post_detail.html?id=${postId}`;
+
+          // Combine existing and new URLs
+          const existingUrls = images.filter(i => !i.isNew).map(i => i.url);
+          const allUrls = existingUrls.concat(newImageUrls);
+          imageUrlsString = allUrls.join(',');
+
+          // Update post
+          const response = await apiFetch(`/posts/${postId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              title: title,
+              content: content,
+              imageUrls: imageUrlsString
+            })
+          });
+
+          if (response) {
+            location.href = `/post_detail.html?id=${postId}`;
+          }
         } else {
-          location.href = '/';
+          // Original create mode
+          const imageUrls = [];
+
+          if (images.length > 0) {
+            for (const img of images.filter(i => i.isNew)) {  // Only upload new images, but in create all are new
+              // FormData로 이미지 파일 업로드
+              const formData = new FormData();
+              formData.append('file', img.file);
+              
+              const uploadResponse = await apiFetch('/posts/upload-image', {
+                method: 'POST',
+                headers: {
+                  'X-USER-ID': Auth.userId()
+                },
+                body: formData
+              });
+              
+              if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
+                imageUrls.push(uploadResponse.data.imageUrl);
+              } else {
+                throw new Error('이미지 업로드에 실패했습니다.');
+              }
+            }
+          }
+
+          imageUrlsString = imageUrls.join(',');
+
+          const response = await apiFetch('/posts', {
+            method: 'POST',
+            body: JSON.stringify({
+              title: title,
+              content: content,
+              imageUrls: imageUrlsString
+            })
+          });
+
+          const newPostId = response?.data?.postId;
+
+          if (newPostId) {
+            location.href = `/post_detail.html?id=${newPostId}`;
+          } else {
+            location.href = '/';
+          }
         }
       } catch (e) {
-        alert('등록 실패: ' + (e.message || 'unknown'));
+        alert('처리 실패: ' + (e.message || 'unknown'));
         // 제출 실패 시 이탈 방지 다시 활성화
         isSubmitting = false;
       } finally {
