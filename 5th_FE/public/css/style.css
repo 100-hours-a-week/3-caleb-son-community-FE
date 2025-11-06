@@ -1862,9 +1862,11 @@ label {
 }
 
 .submit-btn.disabled {
-  background: #ACA0EB;
-  color: white;
+  background: #d9d9d9;
+  color: #999999;
   cursor: not-allowed;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .submit-btn.enabled {
@@ -2267,6 +2269,32 @@ body::-webkit-scrollbar-thumb:hover {
   color: #999;
   font-weight: 500;
   letter-spacing: 0.5px;
+}
+
+/* Toast 메시지 */
+.toast-message {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  opacity: 0;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  max-width: 90%;
+  text-align: center;
+}
+
+.toast-message.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 

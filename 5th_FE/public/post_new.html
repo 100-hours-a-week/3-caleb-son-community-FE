@@ -41,7 +41,6 @@
         
         <!-- 이미지 업로드 -->
         <div class="form-group">
-          <div class="helper-text">* helper text</div>
           <label class="form-label">이미지</label>
           <div class="image-upload-area">
             <input type="file" id="imageInput" accept="image/*" multiple style="display: none;" />
@@ -79,14 +78,92 @@
     const imagePreview = document.getElementById('imagePreview');
     
     let selectedImages = [];
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+    const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB
+    const TARGET_SIZE = 1 * 1024 * 1024; // 1MB
+    const MAX_IMAGE_COUNT = 10; // 최대 이미지 개수
+    
+    // Toast 메시지 표시 함수
+    function showToast(message, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast-message';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      // 애니메이션을 위한 짧은 딜레이
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // 지정된 시간 후 제거
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 300);
+      }, duration);
+    }
     
     // 파일 선택 버튼 클릭
     selectFileBtn.addEventListener('click', () => {
       imageInput.click();
     });
     
+    // 이미지 압축 함수
+    async function compressImage(file, targetSize) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            
+            // 최대 크기 제한 (긴 쪽을 1920px로)
+            const maxDimension = 1920;
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = (height / width) * maxDimension;
+                width = maxDimension;
+              } else {
+                width = (width / height) * maxDimension;
+                height = maxDimension;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // 품질을 조절하며 압축
+            let quality = 0.9;
+            const tryCompress = () => {
+              canvas.toBlob((blob) => {
+                if (blob.size <= targetSize || quality <= 0.1) {
+                  // 목표 크기 달성 또는 최소 품질
+                  resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                } else {
+                  // 품질을 낮춰서 재시도
+                  quality -= 0.1;
+                  tryCompress();
+                }
+              }, 'image/jpeg', quality);
+            };
+            
+            tryCompress();
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    
     // 이미지 파일 선택
-    imageInput.addEventListener('change', (e) => {
+    imageInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
       
       // 이미지 파일만 필터링
@@ -95,11 +172,55 @@
       });
       
       if (imageFiles.length !== files.length) {
-        alert('이미지 파일만 업로드 가능합니다.');
+        showToast('이미지 파일만 업로드 가능합니다.');
       }
       
-      selectedImages = imageFiles;
-      displayImagePreview(imageFiles);
+      if (imageFiles.length === 0) return;
+      
+      // 최대 이미지 개수 체크
+      if (imageFiles.length > MAX_IMAGE_COUNT) {
+        showToast(`최대 ${MAX_IMAGE_COUNT}개의 이미지만 첨부할 수 있습니다.`);
+        imageInput.value = ''; // 파일 선택 초기화
+        return;
+      }
+      
+      // 로딩 표시
+      imagePreview.innerHTML = '<div style="text-align: center; padding: 20px;">이미지 처리 중...</div>';
+      
+      try {
+        // 이미지 압축 처리
+        const processedImages = [];
+        for (const file of imageFiles) {
+          if (file.size > MAX_FILE_SIZE) {
+            // 2MB 초과 시 압축
+            console.log(`압축 전: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            const compressed = await compressImage(file, TARGET_SIZE);
+            console.log(`압축 후: ${compressed.name} - ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+            processedImages.push(compressed);
+          } else {
+            processedImages.push(file);
+          }
+        }
+        
+        // 총 용량 체크
+        const totalSize = processedImages.reduce((sum, file) => sum + file.size, 0);
+        if (totalSize > MAX_TOTAL_SIZE) {
+          showToast(`이미지 총 용량이 5MB를 초과합니다. (현재: ${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
+          imagePreview.innerHTML = '';
+          selectedImages = [];
+          imageInput.value = ''; // 파일 선택 초기화
+          return;
+        }
+        
+        selectedImages = processedImages;
+        displayImagePreview(processedImages);
+      } catch (error) {
+        console.error('이미지 처리 오류:', error);
+        showToast('이미지 처리 중 오류가 발생했습니다.');
+        imagePreview.innerHTML = '';
+        selectedImages = [];
+        imageInput.value = ''; // 파일 선택 초기화
+      }
     });
     
     // 이미지 미리보기 표시
@@ -139,6 +260,11 @@
     
     // 제출 버튼 클릭
     submitBtn.addEventListener('click', async () => {
+      // disabled 상태일 때는 클릭 무시
+      if (submitBtn.classList.contains('disabled')) {
+        return;
+      }
+      
       const title = titleInput.value.trim();
       const content = contentInput.value.trim();
       
@@ -149,6 +275,8 @@
       
       // 버튼 비활성화 및 로딩 상태
       submitBtn.disabled = true;
+      submitBtn.classList.add('disabled');
+      submitBtn.classList.remove('enabled');
       submitBtn.textContent = '등록 중...';
       
       try {
