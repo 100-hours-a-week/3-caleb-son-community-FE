@@ -32,7 +32,7 @@ async function apiFetch(path, opts = {}) {
       if (path === '/posts' || 
           (path.startsWith('/posts/') && path.match(/^\/posts\/\d+$/)) ||
           (path.startsWith('/comments/') && path.match(/^\/comments\/\d+$/))) {
-        const errorMessage = (errorData && errorData.message) || res.statusText || '서버 오류가 발생했습니다.';
+        const errorMessage = (errorData && ((errorData.data && errorData.data.error) || errorData.message)) || res.statusText || '서버 오류가 발생했습니다.';
         const error = new Error(errorMessage);
         error.status = res.status;
         error.payload = errorData;
@@ -64,7 +64,7 @@ async function apiFetch(path, opts = {}) {
           }
           
           if (!retryRes.ok) {
-            const errorMessage = (retryData && retryData.message) || retryRes.statusText || '서버 오류가 발생했습니다.';
+            const errorMessage = (retryData && ((retryData.data && retryData.data.error) || retryData.message)) || retryRes.statusText || '서버 오류가 발생했습니다.';
             const error = new Error(errorMessage);
             error.status = retryRes.status;
             error.payload = retryData;
@@ -87,7 +87,7 @@ async function apiFetch(path, opts = {}) {
     }
     
     if (!res.ok) { 
-      const errorMessage = (data && data.message) || res.statusText || '서버 오류가 발생했습니다.';
+      const errorMessage = (data && ((data.data && data.data.error) || data.message)) || res.statusText || '서버 오류가 발생했습니다.';
       const error = new Error(errorMessage);
       error.status = res.status;
       error.payload = data;

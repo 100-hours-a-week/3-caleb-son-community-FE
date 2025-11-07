@@ -57,6 +57,17 @@
     document.getElementById('nicknameInput').value = currentUser?.nickname || '';
     document.getElementById('nicknameInput').placeholder = currentUser?.nickname || '현재 닉네임';
     
+    const nicknameInput = document.getElementById('nicknameInput');
+    const btnUpdate = document.getElementById('btnUpdate');
+ 
+    function updateButtonState() {
+      const nickname = nicknameInput.value.trim();
+      btnUpdate.disabled = !nickname;
+    }
+ 
+    nicknameInput.addEventListener('input', updateButtonState);
+    updateButtonState();
+    
     // 프로필 이미지 설정
     if(currentUser?.imageUrl) {
       document.getElementById('profileImage').src = currentUser.imageUrl;
