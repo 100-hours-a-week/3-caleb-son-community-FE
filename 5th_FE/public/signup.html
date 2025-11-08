@@ -318,7 +318,7 @@
       formData.append('file', file);
       
       try {
-        const res = await apiFetch('/users/upload-profile-image', {
+        const res = await apiFetch('/users/upload-profile-image-public', {
           method: 'POST',
           body: formData
         });
