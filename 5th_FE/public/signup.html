@@ -26,25 +26,25 @@
         <div class="form-group">
           <label for="email" class="form-label">이메일</label>
           <input type="email" id="email" class="form-input" placeholder="이메일을 입력하세요" required>
-          <div class="helper-text">*helper text</div>
+          <div class="helper-text hidden" id="emailHelper"></div>
         </div>
         
         <div class="form-group">
           <label for="password" class="form-label">비밀번호</label>
           <input type="password" id="password" class="form-input" placeholder="비밀번호를 입력하세요" required>
-          <div class="helper-text">*helper text</div>
+          <div class="helper-text hidden" id="passwordHelper"></div>
         </div>
         
         <div class="form-group">
           <label for="confirmPassword" class="form-label">비밀번호 확인</label>
           <input type="password" id="confirmPassword" class="form-input" placeholder="비밀번호를 한번 더 입력하세요" required>
-          <div class="helper-text">*helper text</div>
+          <div class="helper-text hidden" id="confirmPasswordHelper"></div>
         </div>
         
         <div class="form-group">
           <label for="nickname" class="form-label">닉네임</label>
-          <input type="text" id="nickname" class="form-input" placeholder="닉네임을 입력하세요" required>
-          <div class="helper-text">*helper text</div>
+          <input type="text" id="nickname" class="form-input" placeholder="닉네임을 입력하세요" maxlength="10" required>
+          <div class="helper-text hidden" id="nicknameHelper"></div>
         </div>
         
         <button type="submit" class="btn-submit">가입하기</button>
@@ -62,6 +62,187 @@
     let selectedProfileImage = null;
     let profileImageUrl = null;
     
+    // Toast 메시지 표시 함수
+    function showToast(message, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast-message';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      // 애니메이션을 위한 짧은 딜레이
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // 지정된 시간 후 제거
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 300);
+      }, duration);
+    }
+    
+    // 유효성 검사 함수들
+    function validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+    
+    function validatePassword(password) {
+      const minLength = 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      
+      return {
+        isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar,
+        errors: [
+          password.length < minLength ? `최소 ${minLength}자 이상` : null,
+          !hasUpperCase ? '대문자 포함' : null,
+          !hasLowerCase ? '소문자 포함' : null,
+          !hasNumbers ? '숫자 포함' : null,
+          !hasSpecialChar ? '특수문자 포함' : null
+        ].filter(Boolean)
+      };
+    }
+    
+    function validateNickname(nickname) {
+      // 길이 체크 (2-10자)
+      if (nickname.length < 2 || nickname.length > 10) {
+        return { isValid: false, error: '닉네임은 2-10자 이내여야 합니다.' };
+      }
+      
+      // 공백 체크
+      if (nickname.includes(' ')) {
+        return { isValid: false, error: '닉네임에 띄어쓰기를 포함할 수 없습니다.' };
+      }
+      
+      // 허용된 문자만 사용 (한글, 영어, 숫자, 언더바)
+      const allowedPattern = /^[가-힣a-zA-Z0-9_]+$/;
+      if (!allowedPattern.test(nickname)) {
+        return { isValid: false, error: '한글, 영어, 숫자, 언더바(_)만 사용 가능합니다.' };
+      }
+      
+      // 숫자만으로 구성되면 안됨
+      const onlyNumberPattern = /^[0-9]+$/;
+      if (onlyNumberPattern.test(nickname)) {
+        return { isValid: false, error: '숫자만으로 닉네임을 구성할 수 없습니다.' };
+      }
+      
+      return { isValid: true, error: null };
+    }
+    
+    // Helper 텍스트 업데이트 함수들
+    function showHelperText(elementId, message, isError = false) {
+      const helper = document.getElementById(elementId);
+      helper.textContent = message;
+      helper.className = isError ? 'helper-text error show' : 'helper-text success show';
+    }
+    
+    function hideHelperText(elementId) {
+      const helper = document.getElementById(elementId);
+      helper.className = 'helper-text hidden';
+    }
+    
+    // 실시간 유효성 검사 이벤트 리스너들
+    document.getElementById('email').addEventListener('blur', (e) => {
+      const email = e.target.value.trim();
+      if (email === '') {
+        hideHelperText('emailHelper');
+      } else if (validateEmail(email)) {
+        showHelperText('emailHelper', '✓ 사용 가능한 이메일입니다', false);
+      } else {
+        showHelperText('emailHelper', '올바른 이메일 형식을 입력해주세요', true);
+      }
+    });
+    
+    document.getElementById('email').addEventListener('focus', (e) => {
+      const email = e.target.value.trim();
+      if (email !== '' && !validateEmail(email)) {
+        showHelperText('emailHelper', '올바른 이메일 형식을 입력해주세요', true);
+      }
+    });
+    
+    document.getElementById('password').addEventListener('blur', (e) => {
+      const password = e.target.value;
+      if (password === '') {
+        hideHelperText('passwordHelper');
+      } else {
+        const validation = validatePassword(password);
+        if (validation.isValid) {
+          showHelperText('passwordHelper', '✓ 안전한 비밀번호입니다', false);
+        } else {
+          showHelperText('passwordHelper', validation.errors.join(', '), true);
+        }
+      }
+      
+      // 비밀번호 확인 필드도 다시 검사
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      if (confirmPassword !== '') {
+        if (password === confirmPassword) {
+          showHelperText('confirmPasswordHelper', '✓ 비밀번호가 일치합니다', false);
+        } else {
+          showHelperText('confirmPasswordHelper', '비밀번호가 일치하지 않습니다', true);
+        }
+      }
+    });
+    
+    document.getElementById('password').addEventListener('focus', (e) => {
+      const password = e.target.value;
+      if (password !== '' && !validatePassword(password).isValid) {
+        const validation = validatePassword(password);
+        showHelperText('passwordHelper', validation.errors.join(', '), true);
+      }
+    });
+    
+    document.getElementById('confirmPassword').addEventListener('blur', (e) => {
+      const confirmPassword = e.target.value;
+      const password = document.getElementById('password').value;
+      
+      if (confirmPassword === '') {
+        hideHelperText('confirmPasswordHelper');
+      } else if (password === confirmPassword) {
+        showHelperText('confirmPasswordHelper', '✓ 비밀번호가 일치합니다', false);
+      } else {
+        showHelperText('confirmPasswordHelper', '비밀번호가 일치하지 않습니다', true);
+      }
+    });
+    
+    document.getElementById('confirmPassword').addEventListener('focus', (e) => {
+      const confirmPassword = e.target.value;
+      const password = document.getElementById('password').value;
+      
+      if (confirmPassword !== '' && password !== confirmPassword) {
+        showHelperText('confirmPasswordHelper', '비밀번호가 일치하지 않습니다', true);
+      }
+    });
+    
+    document.getElementById('nickname').addEventListener('blur', (e) => {
+      const nickname = e.target.value.trim();
+      if (nickname === '') {
+        hideHelperText('nicknameHelper');
+      } else {
+        const validation = validateNickname(nickname);
+        if (validation.isValid) {
+          showHelperText('nicknameHelper', '✓ 사용 가능한 닉네임입니다', false);
+        } else {
+          showHelperText('nicknameHelper', validation.error, true);
+        }
+      }
+    });
+    
+    document.getElementById('nickname').addEventListener('focus', (e) => {
+      const nickname = e.target.value.trim();
+      if (nickname !== '') {
+        const validation = validateNickname(nickname);
+        if (!validation.isValid) {
+          showHelperText('nicknameHelper', validation.error, true);
+        }
+      }
+    });
+    
     // 프로필 이미지 선택 이벤트
     document.getElementById('profilePlaceholder').addEventListener('click', () => {
       document.getElementById('profileImageInput').click();
@@ -70,8 +251,30 @@
     document.getElementById('profileImageInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
+        // 파일 크기 검사 (5MB 제한)
+        if (file.size > 5 * 1024 * 1024) {
+          showToast('파일 크기는 5MB 이하여야 합니다.');
+          e.target.value = ''; // 파일 선택 초기화
+          return;
+        }
+        
+        // 이미지 파일 타입 검사
+        if (!file.type.startsWith('image/')) {
+          showToast('이미지 파일만 업로드 가능합니다.');
+          e.target.value = ''; // 파일 선택 초기화
+          return;
+        }
+        
+        // 파일 크기 정보 표시 (선택사항)
+        const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+        console.log(`프로필 이미지 선택: ${file.name} (${fileSizeMB}MB)`);
+        showToast(`프로필 이미지가 선택되었습니다 (${fileSizeMB}MB)`, 2000);
+        
         selectedProfileImage = file;
         showImagePreview(file);
+        
+        // 이전 오류 상태 초기화
+        resetImageErrorState();
       }
     });
     
@@ -86,6 +289,13 @@
       reader.readAsDataURL(file);
     }
     
+    // 이미지 오류 상태 초기화
+    function resetImageErrorState() {
+      const previewImg = document.getElementById('previewImg');
+      previewImg.style.opacity = '1';
+      previewImg.style.border = 'none';
+    }
+    
     // 이미지 제거
     document.getElementById('removeImageBtn').addEventListener('click', () => {
       selectedProfileImage = null;
@@ -93,6 +303,13 @@
       document.getElementById('profileImageInput').value = '';
       document.getElementById('profilePlaceholder').style.display = 'block';
       document.getElementById('profileImagePreview').style.display = 'none';
+      resetImageErrorState(); // 오류 상태 초기화
+      showToast('프로필 이미지가 제거되었습니다.', 2000);
+    });
+    
+    // 이미지 미리보기 클릭 시 이미지 재선택 가능
+    document.getElementById('profileImagePreview').addEventListener('click', () => {
+      document.getElementById('profileImageInput').click();
     });
     
     // 프로필 이미지 업로드 함수
@@ -107,6 +324,7 @@
         });
         return res.data.imageUrl;
       } catch (error) {
+        console.error('프로필 이미지 업로드 실패:', error);
         throw new Error('프로필 이미지 업로드 실패: ' + error.message);
       }
     }
@@ -122,21 +340,60 @@
         profile_image_url: null
       };
       
+      // 유효성 검사
       if(!payload.nickname || !payload.email || !payload.password || !payload.confirmPassword) {
         alert('필수 항목을 입력하세요.');
         return;
       }
       
+      if (!validateEmail(payload.email)) {
+        showHelperText('emailHelper', '올바른 이메일 형식을 입력해주세요', true);
+        document.getElementById('email').focus();
+        return;
+      }
+      
+      const passwordValidation = validatePassword(payload.password);
+      if (!passwordValidation.isValid) {
+        showHelperText('passwordHelper', passwordValidation.errors.join(', '), true);
+        document.getElementById('password').focus();
+        return;
+      }
+      
       if(payload.password !== payload.confirmPassword) {
-        alert('비밀번호가 일치하지 않습니다.');
+        showHelperText('confirmPasswordHelper', '비밀번호가 일치하지 않습니다', true);
+        document.getElementById('confirmPassword').focus();
+        return;
+      }
+      
+      const nicknameValidation = validateNickname(payload.nickname);
+      if (!nicknameValidation.isValid) {
+        showHelperText('nicknameHelper', nicknameValidation.error, true);
+        document.getElementById('nickname').focus();
         return;
       }
       
       try {
         // 프로필 이미지가 선택된 경우 S3에 업로드
         if (selectedProfileImage) {
-          profileImageUrl = await uploadProfileImage(selectedProfileImage);
-          payload.profile_image_url = profileImageUrl;
+          try {
+            profileImageUrl = await uploadProfileImage(selectedProfileImage);
+            payload.profile_image_url = profileImageUrl;
+          } catch (imageError) {
+            console.error('프로필 이미지 업로드 실패:', imageError);
+            showToast('프로필 이미지 업로드에 실패했습니다. 다른 이미지를 선택하거나 제거 후 다시 시도해주세요.', 4000);
+            
+            // 실패한 이미지에 시각적 표시 추가
+            const previewImg = document.getElementById('previewImg');
+            previewImg.style.opacity = '0.5';
+            previewImg.style.border = '2px solid #dc3545';
+            
+            // 재선택 힌트 표시
+            setTimeout(() => {
+              showToast('프로필 이미지를 클릭하여 다른 이미지를 선택하거나 × 버튼으로 제거할 수 있습니다.', 3000);
+            }, 1000);
+            
+            return; // 회원가입 중단
+          }
         }
         
         const res = await apiFetch('/users/signup', { 
@@ -161,9 +418,11 @@
           location.href = '/login.html';
         }
       } catch(e) { 
-        alert('가입 실패: ' + (e.message||'unknown')); 
+        console.error('회원가입 실패:', e);
+        showToast('가입 실패: ' + (e.message || 'unknown'));
       }
     });
   </script>
 </body>
 </html>
+

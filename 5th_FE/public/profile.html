@@ -29,11 +29,26 @@
           
           <div class="form-group">
             <label class="form-label">닉네임</label>
-            <input type="text" id="nicknameInput" class="form-input" placeholder="현재 닉네임"/>
+            <input type="text" id="nicknameInput" class="form-input" placeholder="현재 닉네임" maxlength="10"/>
+            <div class="helper-text hidden" id="nicknameHelper"></div>
           </div>
           
           <button id="btnUpdate" class="update-button">수정하기</button>
+          <button id="btnWithdraw" class="withdraw-button">회원 탈퇴하기</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 회원 탈퇴 확인 모달 -->
+  <div id="withdrawModal" class="modal">
+    <div class="modal-content">
+      <h3>회원 탈퇴</h3>
+      <p>정말로 회원 탈퇴를 하시겠습니까?</p>
+      <p class="warning-text">탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
+      <div class="modal-actions">
+        <button id="btnConfirmWithdraw" class="btn-confirm">탈퇴하기</button>
+        <button id="btnCancelWithdraw" class="btn-cancel">취소</button>
       </div>
     </div>
   </div>
@@ -59,13 +74,101 @@
     
     const nicknameInput = document.getElementById('nicknameInput');
     const btnUpdate = document.getElementById('btnUpdate');
- 
+
+    // Toast 메시지 표시 함수
+    function showToast(message, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast-message';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      // 애니메이션을 위한 짧은 딜레이
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // 지정된 시간 후 제거
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 300);
+      }, duration);
+    }
+
+    // 닉네임 유효성 검사 함수
+    function validateNickname(nickname) {
+      // 길이 체크 (2-10자)
+      if (nickname.length < 2 || nickname.length > 10) {
+        return { isValid: false, error: '닉네임은 2-10자 이내여야 합니다.' };
+      }
+      
+      // 공백 체크
+      if (nickname.includes(' ')) {
+        return { isValid: false, error: '닉네임에 공백을 포함할 수 없습니다.' };
+      }
+      
+      // 허용된 문자만 사용 (한글, 영어, 숫자, 언더바)
+      const allowedPattern = /^[가-힣a-zA-Z0-9_]+$/;
+      if (!allowedPattern.test(nickname)) {
+        return { isValid: false, error: '한글, 영어, 숫자, 언더바(_)만 사용 가능합니다.' };
+      }
+      
+      // 숫자만으로 구성되면 안됨
+      const onlyNumberPattern = /^[0-9]+$/;
+      if (onlyNumberPattern.test(nickname)) {
+        return { isValid: false, error: '숫자만으로 닉네임을 구성할 수 없습니다.' };
+      }
+      
+      return { isValid: true, error: null };
+    }
+
+    // Helper 텍스트 업데이트 함수들
+    function showHelperText(elementId, message, isError = false) {
+      const helper = document.getElementById(elementId);
+      helper.textContent = message;
+      helper.className = isError ? 'helper-text error show' : 'helper-text success show';
+    }
+    
+    function hideHelperText(elementId) {
+      const helper = document.getElementById(elementId);
+      helper.className = 'helper-text hidden';
+    }
+
     function updateButtonState() {
       const nickname = nicknameInput.value.trim();
-      btnUpdate.disabled = !nickname;
+      const validation = validateNickname(nickname);
+      btnUpdate.disabled = !nickname || !validation.isValid;
     }
- 
+
     nicknameInput.addEventListener('input', updateButtonState);
+    
+    // 닉네임 실시간 유효성 검사
+    nicknameInput.addEventListener('blur', (e) => {
+      const nickname = e.target.value.trim();
+      if (nickname === '') {
+        hideHelperText('nicknameHelper');
+      } else {
+        const validation = validateNickname(nickname);
+        if (validation.isValid) {
+          showHelperText('nicknameHelper', '✓ 사용 가능한 닉네임입니다', false);
+        } else {
+          showHelperText('nicknameHelper', validation.error, true);
+        }
+      }
+      updateButtonState();
+    });
+    
+    nicknameInput.addEventListener('focus', (e) => {
+      const nickname = e.target.value.trim();
+      if (nickname !== '') {
+        const validation = validateNickname(nickname);
+        if (!validation.isValid) {
+          showHelperText('nicknameHelper', validation.error, true);
+        }
+      }
+    });
+    
     updateButtonState();
     
     // 프로필 이미지 설정
@@ -146,7 +249,15 @@
       const nickname = document.getElementById('nicknameInput').value.trim();
       
       if(!nickname) {
-        alert('닉네임을 입력해주세요.');
+        showToast('닉네임을 입력해주세요.');
+        return;
+      }
+      
+      // 닉네임 유효성 검사
+      const validation = validateNickname(nickname);
+      if (!validation.isValid) {
+        showHelperText('nicknameHelper', validation.error, true);
+        showToast(validation.error);
         return;
       }
       
@@ -166,11 +277,49 @@
           nickname: nickname 
         });
         
-        alert('회원정보가 수정되었습니다.');
-        location.reload();
+        showToast('회원정보가 수정되었습니다.');
+        setTimeout(() => location.reload(), 1000);
       } catch (error) {
         console.error('회원정보 수정 실패:', error);
-        alert('회원정보 수정에 실패했습니다. 다시 시도해주세요.');
+        showToast('회원정보 수정에 실패했습니다. 다시 시도해주세요.');
+      }
+    });
+
+    // 회원 탈퇴 버튼 클릭 이벤트
+    document.getElementById('btnWithdraw').addEventListener('click', () => {
+      document.getElementById('withdrawModal').style.display = 'flex';
+    });
+
+    // 회원 탈퇴 확인 버튼 클릭 이벤트
+    document.getElementById('btnConfirmWithdraw').addEventListener('click', async () => {
+      try {
+        // 백엔드 API 호출로 회원 탈퇴
+        await apiFetch('/users/withdraw', {
+          method: 'DELETE'
+        });
+
+        alert('회원 탈퇴가 완료되었습니다.');
+        
+        // 로그아웃 처리
+        Auth.logout();
+        
+        // 메인 페이지로 이동
+        location.href = '/';
+      } catch (error) {
+        console.error('회원 탈퇴 실패:', error);
+        alert('회원 탈퇴에 실패했습니다. 다시 시도해주세요.');
+      }
+    });
+
+    // 회원 탈퇴 취소 버튼 클릭 이벤트
+    document.getElementById('btnCancelWithdraw').addEventListener('click', () => {
+      document.getElementById('withdrawModal').style.display = 'none';
+    });
+
+    // 모달 배경 클릭으로 닫기
+    document.getElementById('withdrawModal').addEventListener('click', (e) => {
+      if (e.target.id === 'withdrawModal') {
+        document.getElementById('withdrawModal').style.display = 'none';
       }
     });
   </script>
