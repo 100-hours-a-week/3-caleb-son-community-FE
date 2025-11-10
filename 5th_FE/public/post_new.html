@@ -371,12 +371,12 @@
         if (postId) {
           // For edit mode
           const newImageUrls = [];
-
+        
           // Upload new images
           for (const img of images.filter(i => i.isNew)) {
             const formData = new FormData();
             formData.append('file', img.file);
-
+            
             const uploadResponse = await apiFetch('/posts/upload-image', {
               method: 'POST',
               headers: {
@@ -384,7 +384,7 @@
               },
               body: formData
             });
-
+            
             if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
               newImageUrls.push(uploadResponse.data.imageUrl);
             } else {
@@ -430,29 +430,29 @@
               
               if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
                 imageUrls.push(uploadResponse.data.imageUrl);
-              } else {
-                throw new Error('이미지 업로드에 실패했습니다.');
-              }
+            } else {
+              throw new Error('이미지 업로드에 실패했습니다.');
             }
           }
-
+        }
+        
           imageUrlsString = imageUrls.join(',');
-
-          const response = await apiFetch('/posts', {
-            method: 'POST',
-            body: JSON.stringify({
-              title: title,
-              content: content,
-              imageUrls: imageUrlsString
-            })
-          });
-
+        
+        const response = await apiFetch('/posts', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: title,
+            content: content,
+            imageUrls: imageUrlsString
+          })
+        });
+        
           const newPostId = response?.data?.postId;
-
+        
           if (newPostId) {
             location.href = `/post_detail.html?id=${newPostId}`;
-          } else {
-            location.href = '/';
+        } else {
+          location.href = '/';
           }
         }
       } catch (e) {
