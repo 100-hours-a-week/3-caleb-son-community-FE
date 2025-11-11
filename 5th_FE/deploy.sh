@@ -13,10 +13,10 @@ EC2_IP=$1
 PEM_KEY=$2
 DEPLOY_DIR="/home/ubuntu/frontend"
 
-echo "🚀 프론트엔드 배포 시작..."
+echo "프론트엔드 배포 시작..."
 
 # 1. 배포할 파일 압축
-echo "📦 파일 압축 중..."
+echo "파일 압축 중..."
 tar -czf frontend.tar.gz \
     server.js \
     package.json \
@@ -25,11 +25,11 @@ tar -czf frontend.tar.gz \
     public/
 
 # 2. EC2로 전송
-echo "📤 EC2로 전송 중..."
+echo "EC2로 전송 중..."
 scp -i "$PEM_KEY" frontend.tar.gz ubuntu@$EC2_IP:/home/ubuntu/
 
 # 3. EC2에서 배포 실행
-echo "⚙️  EC2에서 배포 실행 중..."
+echo "EC2에서 배포 실행 중..."
 ssh -i "$PEM_KEY" ubuntu@$EC2_IP << 'ENDSSH'
     # 기존 디렉토리 백업
     if [ -d "/home/ubuntu/frontend" ]; then
@@ -65,6 +65,6 @@ ENDSSH
 # 로컬 압축 파일 삭제
 rm frontend.tar.gz
 
-echo "🎉 배포가 완료되었습니다!"
-echo "📍 접속 주소: http://$EC2_IP"
+echo "배포가 완료되었습니다!"
+echo "접속 주소: http://$EC2_IP"
 
