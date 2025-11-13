@@ -60,6 +60,8 @@
   <script src="/js/api.js"></script>
   <script src="/js/aside.js"></script>
   <script src="/js/ui.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/lambda-upload.js"></script>
   <script>
     renderHeader();
     if(!requireLogin('/login')){}
@@ -374,22 +376,9 @@
         
           // Upload new images
           for (const img of images.filter(i => i.isNew)) {
-            const formData = new FormData();
-            formData.append('file', img.file);
-            
-            const uploadResponse = await apiFetch('/posts/upload-image', {
-              method: 'POST',
-              headers: {
-                'X-USER-ID': Auth.userId()
-              },
-              body: formData
-            });
-            
-            if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
-              newImageUrls.push(uploadResponse.data.imageUrl);
-            } else {
-              throw new Error('이미지 업로드에 실패했습니다.');
-            }
+            // Lambda를 통한 이미지 업로드
+            const imageUrl = await uploadImageFlexible(img.file, 'images', LAMBDA_CONFIG.enabled);
+            newImageUrls.push(imageUrl);
           }
 
           // Combine existing and new URLs
@@ -416,25 +405,11 @@
 
           if (images.length > 0) {
             for (const img of images.filter(i => i.isNew)) {  // Only upload new images, but in create all are new
-              // FormData로 이미지 파일 업로드
-              const formData = new FormData();
-              formData.append('file', img.file);
-              
-              const uploadResponse = await apiFetch('/posts/upload-image', {
-                method: 'POST',
-                headers: {
-                  'X-USER-ID': Auth.userId()
-                },
-                body: formData
-              });
-              
-              if (uploadResponse && uploadResponse.data && uploadResponse.data.imageUrl) {
-                imageUrls.push(uploadResponse.data.imageUrl);
-            } else {
-              throw new Error('이미지 업로드에 실패했습니다.');
+              // Lambda를 통한 이미지 업로드
+              const imageUrl = await uploadImageFlexible(img.file, 'images', LAMBDA_CONFIG.enabled);
+              imageUrls.push(imageUrl);
             }
           }
-        }
         
           imageUrlsString = imageUrls.join(',');
         

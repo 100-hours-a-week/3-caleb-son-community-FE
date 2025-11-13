@@ -57,6 +57,8 @@
   <script src="/js/aside.js"></script>
   <script src="/js/ui.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/lambda-upload.js"></script>
   <script>
     renderHeader();
     if(!requireLogin('/login')){}
@@ -195,22 +197,11 @@
       }
       
       try {
-        // FormData 생성
-        const formData = new FormData();
-        formData.append('file', file);
+        // Lambda를 통한 프로필 이미지 업로드
+        const imageUrl = await uploadImageFlexible(file, 'profiles', LAMBDA_CONFIG.enabled);
         
-        // 프로필 이미지 업로드 API 호출
-        const response = await apiFetch('/users/upload-profile-image', {
-          method: 'POST',
-          headers: {
-            'X-USER-ID': String(userId)
-          },
-          body: formData
-        });
-        
-        if (response && response.data && response.data.imageUrl) {
+        if (imageUrl) {
           // 업로드 성공 시 이미지 URL 업데이트
-          const imageUrl = response.data.imageUrl;
           document.getElementById('profileImage').src = imageUrl;
           document.querySelector('.profile_circle').src = imageUrl;
           
@@ -235,8 +226,6 @@
           }
           
           alert('프로필 이미지가 업데이트되었습니다.');
-        } else {
-          throw new Error('이미지 업로드에 실패했습니다.');
         }
       } catch (error) {
         console.error('이미지 업로드 실패:', error);

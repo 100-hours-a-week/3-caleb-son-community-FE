@@ -56,6 +56,8 @@
   <script src="/js/auth.js"></script>
   <script src="/js/aside.js"></script>
   <script src="/js/ui.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/lambda-upload.js"></script>
   <script>
     renderHeader();
     
@@ -314,15 +316,10 @@
     
     // 프로필 이미지 업로드 함수
     async function uploadProfileImage(file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      
       try {
-        const res = await apiFetch('/users/upload-profile-image-public', {
-          method: 'POST',
-          body: formData
-        });
-        return res.data.imageUrl;
+        // Lambda를 통한 프로필 이미지 업로드
+        const imageUrl = await uploadImageFlexible(file, 'profiles', LAMBDA_CONFIG.enabled);
+        return imageUrl;
       } catch (error) {
         console.error('프로필 이미지 업로드 실패:', error);
         throw new Error('프로필 이미지 업로드 실패: ' + error.message);
