@@ -50,14 +50,35 @@ jobs:
           
           # Public EC2 연결 테스트
           echo "Testing connection to Public EC2..."
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-            ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'Connection successful'" || {
-            echo "Error: Failed to connect to Public EC2"
-            echo "Trying verbose mode for debugging..."
-            ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-              ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'test'" 2>&1 | tail -20
-            exit 1
-          }
+          echo "Target IP: ${{ secrets.PUBLIC_EC2_IP }}"
+          
+          MAX_ATTEMPTS=3
+          TIMEOUT=20
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Connection attempt $i/$MAX_ATTEMPTS (timeout: ${TIMEOUT}s)..."
+            if ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=$TIMEOUT \
+              -o ServerAliveInterval=5 -o ServerAliveCountMax=3 \
+              ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'Connection successful'" 2>&1; then
+              echo "✅ Connection successful!"
+              break
+            else
+              if [ $i -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Failed to connect after $MAX_ATTEMPTS attempts"
+                echo ""
+                echo "Trying verbose mode..."
+                ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=$TIMEOUT \
+                  ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'test'" 2>&1 | tail -30
+                echo ""
+                echo "⚠️  Troubleshooting:"
+                echo "   1. EC2 Security Group: Port 22 (SSH) must allow 0.0.0.0/0"
+                echo "   2. Verify EC2 instance is running"
+                echo "   3. Check Public IP: ${{ secrets.PUBLIC_EC2_IP }}"
+                exit 1
+              fi
+              echo "Waiting 5 seconds before retry..."
+              sleep 5
+            fi
+          done
       
       # SSH 키를 Public EC2에 복사 (Private EC2 접근용)
       - name: Copy SSH key to Public EC2
@@ -159,14 +180,35 @@ jobs:
           
           # Public EC2 연결 테스트
           echo "Testing connection to Public EC2..."
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-            ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'Connection successful'" || {
-            echo "Error: Failed to connect to Public EC2"
-            echo "Trying verbose mode for debugging..."
-            ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-              ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'test'" 2>&1 | tail -20
-            exit 1
-          }
+          echo "Target IP: ${{ secrets.PUBLIC_EC2_IP }}"
+          
+          MAX_ATTEMPTS=3
+          TIMEOUT=20
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Connection attempt $i/$MAX_ATTEMPTS (timeout: ${TIMEOUT}s)..."
+            if ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=$TIMEOUT \
+              -o ServerAliveInterval=5 -o ServerAliveCountMax=3 \
+              ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'Connection successful'" 2>&1; then
+              echo "✅ Connection successful!"
+              break
+            else
+              if [ $i -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Failed to connect after $MAX_ATTEMPTS attempts"
+                echo ""
+                echo "Trying verbose mode..."
+                ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=$TIMEOUT \
+                  ubuntu@${{ secrets.PUBLIC_EC2_IP }} "echo 'test'" 2>&1 | tail -30
+                echo ""
+                echo "⚠️  Troubleshooting:"
+                echo "   1. EC2 Security Group: Port 22 (SSH) must allow 0.0.0.0/0"
+                echo "   2. Verify EC2 instance is running"
+                echo "   3. Check Public IP: ${{ secrets.PUBLIC_EC2_IP }}"
+                exit 1
+              fi
+              echo "Waiting 5 seconds before retry..."
+              sleep 5
+            fi
+          done
       
       # SSH 키를 Public EC2에 복사 (Private EC2 접근용)
       - name: Copy SSH key to Public EC2
