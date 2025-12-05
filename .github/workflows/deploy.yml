@@ -25,8 +25,59 @@ jobs:
           chmod 700 ~/.ssh
           
           # SSH 키 생성 및 권한 설정
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key.raw
+          
+          # 키 파일 정리 (노이즈 제거)
+          python3 << 'PYTHON'
+import re
+import sys
+import os
+
+key_file = os.path.expanduser('~/.ssh/deploy_key.raw')
+
+# 원본 키 읽기
+with open(key_file, 'rb') as f:
+    content = f.read()
+
+# 텍스트로 변환
+text = content.decode('utf-8', errors='ignore')
+
+# BEGIN부터 END까지 추출
+match = re.search(r'-----BEGIN RSA PRIVATE KEY-----(.*?)-----END RSA PRIVATE KEY-----', text, re.DOTALL)
+
+if match:
+    clean_key = '-----BEGIN RSA PRIVATE KEY-----' + match.group(1) + '-----END RSA PRIVATE KEY-----'
+    
+    # 불필요한 문자 제거
+    lines = []
+    for line in clean_key.split('\n'):
+        line = line.rstrip('\r\n')  # 줄바꿈 제거
+        if line:
+            # BEGIN/END 라인 또는 Base64 문자만 허용
+            if '-----BEGIN' in line or '-----END' in line:
+                lines.append(line)
+            elif re.match(r'^[A-Za-z0-9+/=\s]+$', line):
+                # 공백 제거 후 추가
+                clean_line = line.strip()
+                if clean_line:
+                    lines.append(clean_line)
+    
+    clean_content = '\n'.join(lines) + '\n'
+    
+    # 정리된 키 저장
+    output_file = os.path.expanduser('~/.ssh/deploy_key')
+    with open(output_file, 'w') as f:
+        f.write(clean_content)
+    
+    print(f"✅ Key cleaned: {len(clean_content)} bytes, {len(lines)} lines")
+else:
+    print("❌ BEGIN/END pattern not found in key")
+    print("First 200 chars:", repr(text[:200]))
+    sys.exit(1)
+PYTHON
+          
           chmod 600 ~/.ssh/deploy_key
+          rm -f ~/.ssh/deploy_key.raw
           
           # 키 파일 확인 (디버깅)
           echo "Checking key file..."
@@ -155,8 +206,59 @@ jobs:
           chmod 700 ~/.ssh
           
           # SSH 키 생성 및 권한 설정
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key.raw
+          
+          # 키 파일 정리 (노이즈 제거)
+          python3 << 'PYTHON'
+import re
+import sys
+import os
+
+key_file = os.path.expanduser('~/.ssh/deploy_key.raw')
+
+# 원본 키 읽기
+with open(key_file, 'rb') as f:
+    content = f.read()
+
+# 텍스트로 변환
+text = content.decode('utf-8', errors='ignore')
+
+# BEGIN부터 END까지 추출
+match = re.search(r'-----BEGIN RSA PRIVATE KEY-----(.*?)-----END RSA PRIVATE KEY-----', text, re.DOTALL)
+
+if match:
+    clean_key = '-----BEGIN RSA PRIVATE KEY-----' + match.group(1) + '-----END RSA PRIVATE KEY-----'
+    
+    # 불필요한 문자 제거
+    lines = []
+    for line in clean_key.split('\n'):
+        line = line.rstrip('\r\n')  # 줄바꿈 제거
+        if line:
+            # BEGIN/END 라인 또는 Base64 문자만 허용
+            if '-----BEGIN' in line or '-----END' in line:
+                lines.append(line)
+            elif re.match(r'^[A-Za-z0-9+/=\s]+$', line):
+                # 공백 제거 후 추가
+                clean_line = line.strip()
+                if clean_line:
+                    lines.append(clean_line)
+    
+    clean_content = '\n'.join(lines) + '\n'
+    
+    # 정리된 키 저장
+    output_file = os.path.expanduser('~/.ssh/deploy_key')
+    with open(output_file, 'w') as f:
+        f.write(clean_content)
+    
+    print(f"✅ Key cleaned: {len(clean_content)} bytes, {len(lines)} lines")
+else:
+    print("❌ BEGIN/END pattern not found in key")
+    print("First 200 chars:", repr(text[:200]))
+    sys.exit(1)
+PYTHON
+          
           chmod 600 ~/.ssh/deploy_key
+          rm -f ~/.ssh/deploy_key.raw
           
           # 키 파일 확인 (디버깅)
           echo "Checking key file..."
