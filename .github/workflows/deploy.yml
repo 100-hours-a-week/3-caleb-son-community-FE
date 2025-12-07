@@ -100,9 +100,9 @@ jobs:
       # docker-compose.yml을 Private EC2로 전송 (백엔드와 공유)
       - name: Transfer docker-compose.yml to Private EC2
         run: |
-          # 백엔드 디렉토리의 docker-compose.yml 사용
+          # 현재 디렉토리의 docker-compose.yml 사용
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ../3-caleb-son-community-BE/docker-compose.yml \
+            docker-compose.yml \
             ubuntu@${{ secrets.PUBLIC_EC2_IP }}:~/
           
           # Private EC2로 전송
