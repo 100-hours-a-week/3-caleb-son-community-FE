@@ -97,8 +97,22 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ubuntu@${{ secrets.PUBLIC_EC2_IP }} "chmod 600 ~/.ssh/deploy_key && mkdir -p ~/.ssh && chmod 700 ~/.ssh"
       
-      # docker-compose.yml은 백엔드 워크플로우에서 이미 배포되었으므로 스킵
-      # (프론트엔드 docker-compose.yml은 build 방식을 사용하므로 충돌 방지)
+      # docker-compose.yml을 Private EC2로 전송 (백엔드와 공유)
+      - name: Transfer docker-compose.yml to Private EC2
+        run: |
+          # 백엔드 디렉토리의 docker-compose.yml 사용
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ../3-caleb-son-community-BE/docker-compose.yml \
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }}:~/
+          
+          # Private EC2로 전송
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} << 'ENDSSH'
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ~/docker-compose.yml \
+            ubuntu@${{ secrets.PRIVATE_EC2_IP }}:${{ env.PROJECT_DIR }}/
+          rm -f ~/docker-compose.yml
+          ENDSSH
       
       # nginx 설정을 Public EC2로 전송
       - name: Create nginx archive
