@@ -127,19 +127,28 @@ jobs:
       - name: Extract and deploy nginx
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.PUBLIC_EC2_IP }} << ENDSSH
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} << 'ENDSSH'
+          set -e
           cd ${{ env.NGINX_DIR }}
           tar -xzf nginx.tar.gz
           rm nginx.tar.gz
           
-          # Private EC2 IP를 nginx.conf에 설정
-          sed -i "s/server [0-9.]*:8080/server ${{ secrets.PRIVATE_EC2_IP }}:8080/g" nginx/nginx.conf
-          sed -i "s/server [0-9.]*:3003/server ${{ secrets.PRIVATE_EC2_IP }}:3003/g" nginx/nginx.conf
+          # Private EC2 IP를 nginx.conf의 upstream에 설정
+          cd nginx
+          sed -i 's/server [0-9.]*:8080;/server ${{ secrets.PRIVATE_EC2_IP }}:8080;/g' nginx.conf
+          sed -i 's/server [0-9.]*:3003;/server ${{ secrets.PRIVATE_EC2_IP }}:3003;/g' nginx.conf
+          
+          # 수정 확인
+          echo "=== Nginx upstream configuration ==="
+          grep -A 1 "upstream" nginx.conf
           
           # Nginx 재시작
-          cd nginx
-          docker-compose down || true
+          docker-compose down
           docker-compose up -d
+          
+          # 상태 확인
+          docker-compose ps
+          docker-compose logs --tail 10
           ENDSSH
       
       - name: Cleanup
