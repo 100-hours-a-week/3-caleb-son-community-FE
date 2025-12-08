@@ -1,6 +1,7 @@
 # 프론트엔드 배포 가이드
 
 이 레포지토리는 GitHub Actions를 통해 자동으로 EC2에 배포됩니다.
+deploy test
 
 ## 🚀 자동 배포
 
