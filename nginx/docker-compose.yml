@@ -17,3 +17,4 @@ services:
 networks:
   nginx_network:
     driver: bridge
+    
