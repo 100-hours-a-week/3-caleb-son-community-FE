@@ -34,11 +34,11 @@ function renderAsideMenu() {
   // 로그인 상태에 따른 인사말
   const greeting = isLoggedIn && userProfile.nickname 
     ? `${userProfile.nickname}님, 안녕하세요!`
-    : '커뮤니티에 오신 것을 환영합니다';
+    : 'DevIssueHub에 오신 것을 환영합니다';
   
   const asideContent = `
     <div class="aside-header">
-      <button class="aside-close-btn" onclick="closeAsideMenu()">×</button>
+      <button class="aside-close-btn" onclick="closeAsideMenu()">x</button>
       <h2 class="aside-title">DevIssueHub</h2>
       <p class="aside-subtitle">${greeting}</p>
     </div>
