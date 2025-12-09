@@ -255,65 +255,59 @@ jobs:
             frontend-image.tar \
             ubuntu@${{ secrets.PUBLIC_EC2_IP }}:~/
       
-      - name: Transfer Docker image and deploy on Private EC2
+      - name: Ensure directory exists on Private EC2
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.PUBLIC_EC2_IP }} << 'ENDSSH'
-          set -e  # Exit on any error
-          
-          echo "=== Step 1: Ensure remote directory exists ==="
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+              ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
+              'mkdir -p ${{ env.PROJECT_DIR }}/3-caleb-son-community-FE'"
+      
+      - name: Transfer image to Private EC2
+        run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
-            "mkdir -p ${{ env.PROJECT_DIR }}/3-caleb-son-community-FE"
-          
-          echo "=== Step 2: Transfer Docker image to Private EC2 ==="
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ~/frontend-image.tar \
-            ubuntu@${{ secrets.PRIVATE_EC2_IP }}:${{ env.PROJECT_DIR }}/3-caleb-son-community-FE/
-          
-          echo "=== Step 3: Verify file transfer ==="
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+              ~/frontend-image.tar \
+              ubuntu@${{ secrets.PRIVATE_EC2_IP }}:${{ env.PROJECT_DIR }}/3-caleb-son-community-FE/"
+      
+      - name: Load Docker image on Private EC2
+        run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
-            "ls -lh ${{ env.PROJECT_DIR }}/3-caleb-son-community-FE/frontend-image.tar"
-          
-          echo "=== Step 4: Load and deploy on Private EC2 ==="
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+              ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
+              'cd ${{ env.PROJECT_DIR }}/3-caleb-son-community-FE && docker load -i frontend-image.tar'"
+      
+      - name: Tag Docker image on Private EC2
+        run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.PRIVATE_EC2_IP }} << 'ENDSSH2'
-          set -e
-          cd ${{ env.PROJECT_DIR }}/3-caleb-son-community-FE
-          
-          # Load the Docker image
-          echo "Loading Docker image..."
-          docker load -i frontend-image.tar
-          
-          # Tag it for docker-compose
-          echo "Tagging image..."
-          docker tag community-frontend:latest community-project-frontend:latest
-          
-          # Cleanup the tar file
-          echo "Cleaning up tar file..."
-          rm -f frontend-image.tar
-          
-          # Stop existing frontend container
-          echo "Stopping existing frontend..."
-          cd ${{ env.PROJECT_DIR }}
-          docker-compose stop frontend || true
-          docker-compose rm -f frontend || true
-          
-          # Start the frontend with the pre-built image
-          echo "Starting frontend..."
-          docker-compose up -d frontend
-          
-          # Show status
-          echo "Frontend status:"
-          docker-compose ps frontend
-          ENDSSH2
-          
-          echo "=== Step 5: Cleanup on Public EC2 ==="
-          rm -f ~/frontend-image.tar
-          
-          echo "=== Deployment completed successfully ==="
-          ENDSSH
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+              ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
+              'docker tag community-frontend:latest community-project-frontend:latest'"
+      
+      - name: Cleanup tar file on Private EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+              ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
+              'rm -f ${{ env.PROJECT_DIR }}/3-caleb-son-community-FE/frontend-image.tar'"
+      
+      - name: Restart frontend container on Private EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+              ubuntu@${{ secrets.PRIVATE_EC2_IP }} \
+              'cd ${{ env.PROJECT_DIR }} && docker-compose stop frontend && docker-compose rm -f frontend && docker-compose up -d frontend'"
+      
+      - name: Cleanup image on Public EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ubuntu@${{ secrets.PUBLIC_EC2_IP }} \
+            "rm -f ~/frontend-image.tar"
       
       - name: Wait for frontend to start
         run: sleep 20
