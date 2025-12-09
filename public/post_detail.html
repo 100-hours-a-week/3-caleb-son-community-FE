@@ -152,7 +152,10 @@
     let isEditingComment = false;
     let editingCommentId = null;
     let deleteCommentId = null;
-    let isLoading = false;
+    let isLoadingComments = false;
+    let commentCurrentPage = 0;
+    const commentPageSize = 5;
+    let hasMoreComments = true;
     
     // 숫자 포맷팅 함수 (1k, 10k, 100k)
     function formatNumber(num) {
@@ -270,61 +273,110 @@
       }
     }
     
-    // 댓글 로드
-    async function loadComments(reset = false) {
-      if (isLoading) return;
+    // 댓글 렌더링 헬퍼 함수
+    function renderComment(comment) {
+      const commentEl = document.createElement('div');
+      commentEl.className = 'comment-item';
+      commentEl.dataset.commentId = comment.id;
       
-      isLoading = true;
+      // 현재 사용자가 댓글 작성자인지 확인
+      const currentUserId = Auth.userId();
+      const isMyComment = currentUserId && comment.author?.id === currentUserId;
+      
+      commentEl.innerHTML = `
+        <div class="comment-content">
+          <div class="comment-author">${comment.author?.nickname || 'Anonymous'}</div>
+          <div class="comment-text" data-original="${comment.content.replace(/"/g, '&quot;')}">${comment.content}</div>
+          <textarea class="comment-edit-input" style="display: none;">${comment.content}</textarea>
+          <div class="comment-date">${new Date(comment.publishedAt).toLocaleString('ko-KR')}</div>
+        </div>
+        <div class="comment-actions" style="display: ${isMyComment ? 'flex' : 'none'}">
+          <button class="btn-comment-edit" data-comment-id="${comment.id}">수정</button>
+          <button class="btn-comment-save" data-comment-id="${comment.id}" style="display: none;">저장</button>
+          <button class="btn-comment-cancel" data-comment-id="${comment.id}" style="display: none;">취소</button>
+          <button class="btn-comment-delete" data-comment-id="${comment.id}">삭제</button>
+        </div>
+      `;
+      return commentEl;
+    }
+    
+    // 댓글 로드 (무한 스크롤)
+    async function loadComments(reset = false) {
+      if (isLoadingComments || !hasMoreComments) return;
+      
+      isLoadingComments = true;
       if (reset) {
         document.getElementById('commentsList').innerHTML = '';
+        commentCurrentPage = 0;
+        hasMoreComments = true;
       }
       
       try {
         showLoadingIndicator();
-        const res = await apiFetch(`/posts/${postId}/comments`);
+        const res = await apiFetch(`/posts/${postId}/comments?page=${commentCurrentPage}&size=${commentPageSize}`);
         const commentsData = res.data?.comments || [];
+        const pagination = res.data?.pagination || {};
         
         if (commentsData.length === 0) {
+          hasMoreComments = false;
           hideLoadingIndicator();
+          if (commentCurrentPage === 0) {
+            // 첫 페이지에서 댓글이 없으면 메시지 표시
+            const commentsList = document.getElementById('commentsList');
+            const emptyMessage = document.createElement('div');
+            emptyMessage.className = 'empty-comments';
+            emptyMessage.textContent = '댓글이 없습니다.';
+            commentsList.appendChild(emptyMessage);
+          }
           return;
         }
         
         const commentsList = document.getElementById('commentsList');
-        commentsList.innerHTML = ''; // 전체 댓글을 다시 렌더링
+        
+        // 기존 빈 메시지 제거
+        const emptyMessage = commentsList.querySelector('.empty-comments');
+        if (emptyMessage) {
+          emptyMessage.remove();
+        }
         
         commentsData.forEach(comment => {
-          const commentEl = document.createElement('div');
-          commentEl.className = 'comment-item';
-          commentEl.dataset.commentId = comment.id;
-          
-          // 현재 사용자가 댓글 작성자인지 확인
-          const currentUserId = Auth.userId();
-          const isMyComment = currentUserId && comment.author?.id === currentUserId;
-          
-          commentEl.innerHTML = `
-            <div class="comment-content">
-              <div class="comment-author">${comment.author?.nickname || 'Anonymous'}</div>
-              <div class="comment-text" data-original="${comment.content.replace(/"/g, '&quot;')}">${comment.content}</div>
-              <textarea class="comment-edit-input" style="display: none;">${comment.content}</textarea>
-              <div class="comment-date">${new Date(comment.publishedAt).toLocaleString('ko-KR')}</div>
-            </div>
-            <div class="comment-actions" style="display: ${isMyComment ? 'flex' : 'none'}">
-              <button class="btn-comment-edit" data-comment-id="${comment.id}">수정</button>
-              <button class="btn-comment-save" data-comment-id="${comment.id}" style="display: none;">저장</button>
-              <button class="btn-comment-cancel" data-comment-id="${comment.id}" style="display: none;">취소</button>
-              <button class="btn-comment-delete" data-comment-id="${comment.id}">삭제</button>
-            </div>
-          `;
+          const commentEl = renderComment(comment);
           commentsList.appendChild(commentEl);
         });
         
+        // 더 이상 댓글이 없으면 마지막 메시지 표시
+        if (!pagination.has_more) {
+          hasMoreComments = false;
+          const endMessage = document.createElement('div');
+          endMessage.className = 'end-message';
+          endMessage.innerHTML = '<p>마지막 댓글입니다.</p>';
+          commentsList.appendChild(endMessage);
+        }
+        
+        commentCurrentPage++;
         hideLoadingIndicator();
       } catch (e) {
         console.error('댓글을 불러오는데 실패했습니다:', e);
         hideLoadingIndicator();
       } finally {
-        isLoading = false;
+        isLoadingComments = false;
       }
+    }
+    
+    // 댓글 무한 스크롤 감지
+    function setupCommentScrollListener() {
+      window.addEventListener('scroll', () => {
+        const commentsList = document.getElementById('commentsList');
+        if (!commentsList || !hasMoreComments) return;
+        
+        const commentsListRect = commentsList.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // 댓글 목록이 화면에 보이고, 댓글 목록의 하단이 화면 하단에 가까워지면 추가 로드
+        if (commentsListRect.bottom <= windowHeight + 300) {
+          loadComments();
+        }
+      });
     }
     
     // 로딩 인디케이터 표시/숨김
@@ -375,6 +427,9 @@
         
         commentInput.value = '';
         commentSubmitBtn.disabled = true;
+        // 댓글 작성 후 첫 페이지부터 다시 로드
+        commentCurrentPage = 0;
+        hasMoreComments = true;
         await loadComments(true); // 댓글 목록 새로고침
         await loadPost();
       } catch (e) {
@@ -423,6 +478,8 @@
           method: 'PATCH',
           body: JSON.stringify({ content: newContent })
         }).then(() => {
+          commentCurrentPage = 0;
+          hasMoreComments = true;
           loadComments(true);
           loadPost();
         }).catch(err => {
@@ -484,7 +541,9 @@
       try {
         await apiFetch(`/posts/${postId}/comments/${deleteCommentId}`, { method: 'PUT' });
         document.getElementById('commentDeleteModal').style.display = 'none';
-        await loadComments();
+        commentCurrentPage = 0;
+        hasMoreComments = true;
+        await loadComments(true);
         await loadPost();
       } catch (e) {
         alert('댓글 삭제에 실패했습니다: ' + e.message);
@@ -520,6 +579,9 @@
     
     // 초기 로드
     loadPost();
+    
+    // 댓글 섹션 스크롤 리스너 설정
+    setupCommentScrollListener();
   </script>
 </body>
 </html>
