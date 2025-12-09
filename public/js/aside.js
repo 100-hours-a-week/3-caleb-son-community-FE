@@ -39,7 +39,7 @@ function renderAsideMenu() {
   const asideContent = `
     <div class="aside-header">
       <button class="aside-close-btn" onclick="closeAsideMenu()">×</button>
-      <h2 class="aside-title">아무 말 대잔치</h2>
+      <h2 class="aside-title">DevIssueHub</h2>
       <p class="aside-subtitle">${greeting}</p>
     </div>
     

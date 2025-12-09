@@ -24,7 +24,7 @@ function renderHeader() {
     <div class="header-menu">
         <img class="menu-icon" src="/assets/images/menu.png" alt="메뉴" onclick="asideMenu()" />
     </div>
-    <div class="logo-text">아무 말 대잔치</div>
+    <div class="logo-text">DevIssueHub</div>
     <div class="header-actions">
       <div class="header-dropdown">
         <img class="profile_circle" src="${profileImageUrl}" alt="프로필" onclick="toggleDropdown()" />
