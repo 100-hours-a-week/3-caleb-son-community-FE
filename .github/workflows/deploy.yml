@@ -246,7 +246,7 @@ jobs:
       
       - name: Build Docker image in GitHub Actions
         run: |
-          docker build -t community-frontend:latest .
+          docker build --platform linux/amd64 -t community-frontend:latest .
           docker save -o frontend-image.tar community-frontend:latest
       
       - name: Transfer Docker image to Public EC2
