@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>게시글 작성</title>
   <link rel="stylesheet" href="/css/style.css"/>
+  <!-- Highlight.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 </head>
 <body>
   <div class="wrap">
@@ -30,13 +32,40 @@
         
         <!-- 내용 입력 -->
         <div class="form-group">
-          <label class="form-label required">내용</label>
+          <div class="form-label-row">
+            <label class="form-label required">내용</label>
+            <button type="button" class="help-btn" id="markdownHelpBtn" title="마크다운 사용법">
+              <span>?</span>
+            </button>
+          </div>
           <textarea 
             id="content" 
             class="form-textarea" 
-            placeholder="내용을 입력해주세요."
+            placeholder="내용을 입력해주세요.&#10;&#10;코드 블록 예시:&#10;```javascript&#10;const example = 'code';&#10;```"
             rows="8"
           ></textarea>
+          <div class="markdown-hint" id="markdownHint">
+            <div class="markdown-hint-header" onclick="toggleMarkdownHint()">
+              <div class="markdown-hint-title">💡 마크다운 사용법</div>
+              <span class="markdown-hint-toggle">▼</span>
+            </div>
+            <div class="markdown-hint-content" id="markdownHintContent" style="display: none;">
+              <div class="markdown-example">
+                <strong>코드 블록:</strong>
+                <pre><code>```javascript
+const example = "코드 예시";
+console.log(example);
+```</code></pre>
+              </div>
+              <div class="markdown-example">
+                <strong>인라인 코드:</strong>
+                <code>`const x = 1;`</code>
+              </div>
+              <div class="markdown-example">
+                <strong>지원 언어:</strong> javascript, python, java, html, css, json 등
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- 이미지 업로드 -->
@@ -56,12 +85,57 @@
     </div>
   </div>
 
+  <!-- 마크다운 가이드 모달 -->
+  <div id="markdownGuideModal" class="modal">
+    <div class="modal-content" style="max-width: 600px; text-align: left;">
+      <h3>마크다운 사용 가이드</h3>
+      <div class="markdown-guide-content">
+        <div class="guide-section">
+          <h4>📝 코드 블록</h4>
+          <p>코드 블록은 세 개의 백틱(`)으로 감싸서 작성합니다:</p>
+          <pre><code>```javascript
+function hello() {
+  console.log("Hello, World!");
+}
+```</code></pre>
+        </div>
+        
+        <div class="guide-section">
+          <h4>💻 인라인 코드</h4>
+          <p>한 줄 코드는 백틱 하나로 감싸면 됩니다:</p>
+          <p>예: <code>`const x = 1;`</code></p>
+        </div>
+        
+        <div class="guide-section">
+          <h4>🌐 지원하는 언어</h4>
+          <p>javascript, python, java, html, css, json, typescript, go, rust, cpp 등 대부분의 프로그래밍 언어를 지원합니다.</p>
+        </div>
+        
+        <div class="guide-section">
+          <h4>✨ 기타 마크다운 문법</h4>
+          <ul>
+            <li><strong>굵게:</strong> <code>**텍스트**</code></li>
+            <li><em>기울임:</em> <code>*텍스트*</code></li>
+            <li>줄바꿈: 두 번의 공백 또는 빈 줄</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btnCloseMarkdownGuide" class="btn-confirm">확인</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/auth.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/aside.js"></script>
   <script src="/js/ui.js"></script>
   <script src="/js/config.js"></script>
   <script src="/js/lambda-upload.js"></script>
+  <!-- Marked.js for markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <!-- Highlight.js for syntax highlighting -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script>
     renderHeader();
     if(!requireLogin('/login')){}
@@ -342,6 +416,42 @@
         }
       }
     });
+    
+    // 마크다운 가이드 모달
+    const markdownHelpBtn = document.getElementById('markdownHelpBtn');
+    const markdownGuideModal = document.getElementById('markdownGuideModal');
+    const btnCloseMarkdownGuide = document.getElementById('btnCloseMarkdownGuide');
+    
+    if (markdownHelpBtn && markdownGuideModal && btnCloseMarkdownGuide) {
+      markdownHelpBtn.addEventListener('click', () => {
+        markdownGuideModal.style.display = 'flex';
+      });
+      
+      btnCloseMarkdownGuide.addEventListener('click', () => {
+        markdownGuideModal.style.display = 'none';
+      });
+      
+      markdownGuideModal.addEventListener('click', (e) => {
+        if (e.target.id === 'markdownGuideModal') {
+          markdownGuideModal.style.display = 'none';
+        }
+      });
+    }
+    
+    // 마크다운 힌트 접기/펼치기
+    window.toggleMarkdownHint = function() {
+      const content = document.getElementById('markdownHintContent');
+      const toggle = document.querySelector('.markdown-hint-toggle');
+      if (content && toggle) {
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          toggle.textContent = '▲';
+        } else {
+          content.style.display = 'none';
+          toggle.textContent = '▼';
+        }
+      }
+    };
     
     // 제출 버튼 클릭
     submitBtn.addEventListener('click', async () => {

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>게시글 상세</title>
   <link rel="stylesheet" href="/css/style.css"/>
+  <!-- Highlight.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 </head>
 <body>
   <div class="wrap">
@@ -110,6 +112,10 @@
   <script src="/js/api.js"></script>
   <script src="/js/aside.js"></script>
   <script src="/js/ui.js"></script>
+  <!-- Marked.js for markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <!-- Highlight.js for syntax highlighting -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script>
     renderHeader();
     if(!requireLogin('/login')){}
@@ -118,6 +124,27 @@
     const currentUser = Auth.profile();
     if(currentUser?.imageUrl) {
       document.querySelector('.profile_circle').src = currentUser.imageUrl;
+    }
+    
+    // Marked.js 설정 - highlight.js와 연동
+    if (typeof marked !== 'undefined') {
+      marked.setOptions({
+        highlight: function(code, lang) {
+          if (lang && typeof hljs !== 'undefined') {
+            try {
+              return hljs.highlight(code, { language: lang }).value;
+            } catch (err) {
+              return hljs.highlightAuto(code).value;
+            }
+          }
+          if (typeof hljs !== 'undefined') {
+            return hljs.highlightAuto(code).value;
+          }
+          return code;
+        },
+        breaks: true,
+        gfm: true
+      });
     }
     
     const params = new URLSearchParams(location.search);
@@ -218,8 +245,23 @@
           });
         }
         
-        // 게시글 내용
-        document.getElementById('content').textContent = p.content;
+        // 게시글 내용 - 마크다운 파싱 및 구문 강조 적용
+        const contentElement = document.getElementById('content');
+        if (typeof marked !== 'undefined' && p.content) {
+          // 마크다운을 HTML로 변환
+          const htmlContent = marked.parse(p.content);
+          contentElement.innerHTML = htmlContent;
+          
+          // highlight.js 적용 (marked가 자동으로 적용하지만, 추가로 보장)
+          if (typeof hljs !== 'undefined') {
+            contentElement.querySelectorAll('pre code').forEach((block) => {
+              hljs.highlightElement(block);
+            });
+          }
+        } else {
+          // 라이브러리가 로드되지 않은 경우 일반 텍스트로 표시
+          contentElement.textContent = p.content;
+        }
         
         // 댓글 초기 로드
         await loadComments();

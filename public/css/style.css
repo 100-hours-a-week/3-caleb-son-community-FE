@@ -370,11 +370,207 @@ textarea {
   resize: vertical;
 }
 
+/* 인라인 코드 스타일 */
 code {
   background-color: #f0f0f0;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 0.9em;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* 코드 블록 스타일 */
+pre {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  margin: var(--spacing-md) 0;
+  line-height: 1.6;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 14px;
+  color: inherit;
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* Highlight.js 코드 블록 스타일 */
+.content-text pre {
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.content-text pre code {
+  background: transparent;
+  color: inherit;
+}
+
+/* 폼 레이블 행 스타일 */
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.form-label-row .form-label {
+  margin-bottom: 0;
+}
+
+/* 도움말 버튼 */
+.help-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: #666;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.help-btn:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+  color: #333;
+}
+
+/* 마크다운 힌트 스타일 */
+.markdown-hint {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.markdown-hint-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.markdown-hint-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.markdown-hint-toggle {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.markdown-hint-content {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-top: var(--spacing-sm);
+}
+
+.markdown-example {
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-sm);
+  background-color: #fff;
+  border-left: 3px solid #007bff;
+  border-radius: var(--radius-sm);
+}
+
+.markdown-example strong {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text-primary);
+}
+
+.markdown-example pre {
+  margin: var(--spacing-xs) 0 0 0;
+  padding: var(--spacing-sm);
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.markdown-example code {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  display: inline-block;
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+/* 마크다운 가이드 모달 내용 */
+.markdown-guide-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-bottom: var(--spacing-lg);
+}
+
+.guide-section {
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid #eee;
+}
+
+.guide-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.guide-section h4 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+  font-size: 16px;
+}
+
+.guide-section p {
+  margin: var(--spacing-xs) 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.guide-section ul {
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-lg);
+  color: var(--color-text-muted);
+}
+
+.guide-section li {
+  margin: var(--spacing-xs) 0;
+  line-height: 1.6;
+}
+
+.guide-section pre {
+  margin: var(--spacing-sm) 0;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  overflow-x: auto;
 }
 
 label {
@@ -1151,7 +1347,19 @@ label {
   font-size: 16px;
   line-height: 1.8;
   color: #333333;
-  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.content-text p {
+  margin: var(--spacing-md) 0;
+}
+
+.content-text p:first-child {
+  margin-top: 0;
+}
+
+.content-text p:last-child {
+  margin-bottom: 0;
 }
 
 /* 통계 정보 섹션 */
